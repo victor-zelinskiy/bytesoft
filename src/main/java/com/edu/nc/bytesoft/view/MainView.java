@@ -20,7 +20,7 @@ public class MainView extends VerticalLayout implements View {
         setSpacing(true);
         addComponent(new Label("Main view"));
         Button btnTest = new Button("Test");
-        btnTest.addClickListener(event -> Notification.show("hello"));
+        btnTest.addClickListener(event -> Notification.show("hello_viv"));
         addComponent(btnTest);
     }
 
