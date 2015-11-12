@@ -2,7 +2,7 @@ package com.edu.nc.bytesoft.model;
 
 import java.util.Date;
 
-public abstract class AbstractWork extends NamedEntity {
+public abstract class AbstractItem extends NamedEntity {
     protected User author;
     protected Date createdDate;
     protected String description;
@@ -10,10 +10,10 @@ public abstract class AbstractWork extends NamedEntity {
     protected Date deadlineDate;
     protected Date completedDate;
 
-    public AbstractWork() {
+    public AbstractItem() {
     }
 
-    public AbstractWork(Long id, String name, User author, Date createdDate, Status status) {
+    public AbstractItem(Long id, String name, User author, Date createdDate, Status status) {
         super(id, name);
         this.author = author;
         this.createdDate = createdDate;
