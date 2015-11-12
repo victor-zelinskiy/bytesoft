@@ -2,7 +2,7 @@ package com.edu.nc.bytesoft.model;
 
 import java.util.List;
 
-public class Task extends AbstractWork {
+public class Task extends AbstractItem {
     protected List<User> assignUser;
     protected Integer priority;
     protected List<User> watchers;
