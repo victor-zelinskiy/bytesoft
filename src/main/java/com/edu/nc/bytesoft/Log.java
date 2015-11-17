@@ -3,16 +3,16 @@ package com.edu.nc.bytesoft;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class LoggerWrapper {
+public class Log {
 
     private Logger logger;
 
-    public LoggerWrapper(Logger logger) {
+    public Log(Logger logger) {
         this.logger = logger;
     }
 
-    public static LoggerWrapper get(Class aClass) {
-        return new LoggerWrapper(LoggerFactory.getLogger(aClass));
+    public static Log get(Class aClass) {
+        return new Log(LoggerFactory.getLogger(aClass));
     }
 
     public void debug(String msg) {

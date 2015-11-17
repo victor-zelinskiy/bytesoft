@@ -1,6 +1,6 @@
 package com.edu.nc.bytesoft.ui.component;
 
-import com.edu.nc.bytesoft.LoggerWrapper;
+import com.edu.nc.bytesoft.Log;
 import com.vaadin.event.ShortcutAction;
 import com.vaadin.server.FontAwesome;
 import com.vaadin.server.Page;
@@ -23,7 +23,7 @@ import org.vaadin.spring.security.util.SuccessfulLoginEvent;
 public class LoginForm extends VerticalLayout {
     private final VaadinSecurity vaadinSecurity;
     private final EventBus.SessionEventBus eventBus;
-    private static final LoggerWrapper LOG = LoggerWrapper.get(LoginForm.class);
+    private static final Log LOG = Log.get(LoginForm.class);
 
 
     @Autowired

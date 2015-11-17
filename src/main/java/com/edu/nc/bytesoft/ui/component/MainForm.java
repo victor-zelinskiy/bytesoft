@@ -1,6 +1,6 @@
 package com.edu.nc.bytesoft.ui.component;
 
-import com.edu.nc.bytesoft.LoggerWrapper;
+import com.edu.nc.bytesoft.Log;
 import com.edu.nc.bytesoft.ui.view.HomeView;
 import com.vaadin.navigator.Navigator;
 import com.vaadin.spring.annotation.SpringComponent;
@@ -19,7 +19,7 @@ import org.vaadin.spring.sidebar.security.VaadinSecurityItemFilter;
 @SpringComponent
 public class MainForm extends CustomComponent {
 
-    private static final LoggerWrapper LOG = LoggerWrapper.get(MainForm.class);
+    private static final Log LOG = Log.get(MainForm.class);
 
     @Autowired
     public MainForm(final VaadinSecurity vaadinSecurity, SpringViewProvider springViewProvider, ValoSideBar sideBar) {

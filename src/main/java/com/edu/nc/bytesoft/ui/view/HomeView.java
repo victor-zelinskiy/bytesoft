@@ -27,7 +27,7 @@ public class HomeView extends VerticalLayout implements View {
         Label header = new Label("Home page");
         header.addStyleName(ValoTheme.LABEL_H2);
         addComponent(header);
-        addComponent(new Button());
+        addComponent(new Button("test"));
     }
 
     @Override

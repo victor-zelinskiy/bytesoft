@@ -1,6 +1,6 @@
 package com.edu.nc.bytesoft.ui;
 
-import com.edu.nc.bytesoft.LoggerWrapper;
+import com.edu.nc.bytesoft.Log;
 import com.edu.nc.bytesoft.ui.component.LoginForm;
 import com.edu.nc.bytesoft.ui.component.MainForm;
 import com.vaadin.annotations.Theme;
@@ -21,7 +21,7 @@ import org.vaadin.spring.security.util.SuccessfulLoginEvent;
 @Title("ByteSoft projects manager")
 public class MainUI extends UI {
 
-    private static final LoggerWrapper LOG = LoggerWrapper.get(MainUI.class);
+    private static final Log LOG = Log.get(MainUI.class);
 
     @Autowired
     private SpringViewProvider viewProvider;
@@ -32,12 +32,6 @@ public class MainUI extends UI {
 
     @Autowired
     private EventBus.SessionEventBus eventBus;
-
-//    @Autowired
-//    private LoginForm loginForm;
-//
-//    @Autowired
-//    private MainForm mainForm;
 
     @Autowired
     ApplicationContext applicationContext;
