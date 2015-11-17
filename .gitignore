@@ -13,7 +13,6 @@ atlassian-ide-plugin.xml
 hs_err_pid*
 *.pydevproject
 .metadata
-.gradle
 bin/
 tmp/
 *.tmp
