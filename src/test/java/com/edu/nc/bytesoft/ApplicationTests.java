@@ -1,13 +1,16 @@
 package com.edu.nc.bytesoft;
 
-import com.edu.nc.bytesoft.ui.MainUI;
+import com.edu.nc.bytesoft.dao.TransactionDataSource;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.boot.test.SpringApplicationConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
 
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -18,7 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @WebAppConfiguration
 public class ApplicationTests {
 
-    private static final Log LOG = Log.get(MainUI.class);
+    private static final Log LOG = Log.get(ApplicationTests.class);
 
     private static final String sqlProjectName = "select attr.value " +
             "from attributes attr, objects obj " +
@@ -28,9 +31,11 @@ public class ApplicationTests {
     @Test
     public void dbConnectTest() throws SQLException {
         LOG.debug("dbConnectTest");
+        TransactionDataSource transactionDataSource = new TransactionDataSource();
+        //transactionDataSource.invoke(() -> n)
         String[] expectedProjectNames = new String[]{"Project 1 Name", "Project 2 Name", "Project UMC 1 Name"};
         List<String> result = new ArrayList<>();
-        try (Connection con = DriverManager.getConnection("jdbc:oracle:thin:@localhost:1521:XE", "bytesoft_db", "2430");
+        try (Connection con = new TransactionDataSource().getConnection();
              Statement statement = con.createStatement();
              ResultSet resultSet = statement.executeQuery(sqlProjectName)) {
             while (resultSet.next()) {

@@ -4,9 +4,11 @@ import com.edu.nc.bytesoft.ui.component.SideBar;
 import com.vaadin.navigator.View;
 import com.vaadin.navigator.ViewChangeListener;
 import com.vaadin.server.FontAwesome;
+import com.vaadin.server.Page;
 import com.vaadin.spring.annotation.SpringView;
 import com.vaadin.ui.Button;
 import com.vaadin.ui.Label;
+import com.vaadin.ui.Notification;
 import com.vaadin.ui.VerticalLayout;
 import com.vaadin.ui.themes.ValoTheme;
 import org.vaadin.spring.sidebar.annotation.FontAwesomeIcon;
@@ -27,7 +29,12 @@ public class HomeView extends VerticalLayout implements View {
         Label header = new Label("Home page");
         header.addStyleName(ValoTheme.LABEL_H2);
         addComponent(header);
-        addComponent(new Button("test"));
+        Button test = new Button("test");
+        Notification notification = new Notification("Миша привет");
+        //notification.setCaption();
+        notification.setIcon(FontAwesome.BANK);
+        test.addClickListener(clickEvent -> notification.show(Page.getCurrent()));
+        addComponent(test);
     }
 
     @Override
