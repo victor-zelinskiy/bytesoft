@@ -1,17 +1,37 @@
 package com.edu.nc.bytesoft.model;
 
+import com.edu.nc.bytesoft.dao.annotation.AttributeName;
+
+import java.util.Date;
 import java.util.List;
 
 public class Task extends AbstractItem {
+    @AttributeName("TSK_ASSIGN_USER")
     protected List<User> assignUser;
+
+    @AttributeName("TSK_PRIORITY")
     protected Integer priority;
+
+    @AttributeName("TSK_WATCHERS")
     protected List<User> watchers;
+
+    @AttributeName("TSK_COMMENTS")
     protected List<Comment> comments;
+
+    @AttributeName("TSK_PARENT_TASK")
     protected Task parentTask;
 
     public Task() {
     }
 
+    public Task(Long id, String name, User author, Date createdDate, Status status, List<User> assignUser, Integer priority, List<User> watchers, List<Comment> comments, Task parentTask) {
+        super(id, name, author, createdDate, status);
+        this.assignUser = assignUser;
+        this.priority = priority;
+        this.watchers = watchers;
+        this.comments = comments;
+        this.parentTask = parentTask;
+    }
     public List<User> getAssignUser() {
         return assignUser;
     }

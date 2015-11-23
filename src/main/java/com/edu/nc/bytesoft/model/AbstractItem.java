@@ -1,13 +1,22 @@
 package com.edu.nc.bytesoft.model;
 
+import com.edu.nc.bytesoft.dao.annotation.AttributeName;
+
 import java.util.Date;
 
 public abstract class AbstractItem extends NamedEntity {
+
+    @AttributeName("AIT_CREATOR")
     protected User author;
+    @AttributeName("AIT_CREATE_DATE")
     protected Date createdDate;
+    @AttributeName("AIT_DESCRIPTION")
     protected String description;
+    @AttributeName("AIT_STATUS")
     protected Status status;
+    @AttributeName("AIT_DEADLINE_DATE")
     protected Date deadlineDate;
+    @AttributeName("AIT_COMPLETE_DATE")
     protected Date completedDate;
 
     public AbstractItem() {

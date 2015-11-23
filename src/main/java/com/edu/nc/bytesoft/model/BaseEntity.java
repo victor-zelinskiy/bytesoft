@@ -5,6 +5,8 @@ import java.util.Objects;
 public abstract class BaseEntity {
     protected Long id;
 
+    protected boolean isLazy;
+
     protected BaseEntity() {
     }
 
@@ -18,6 +20,14 @@ public abstract class BaseEntity {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public boolean isLazy() {
+        return isLazy;
+    }
+
+    public void setLazy(boolean isLazy) {
+        this.isLazy = isLazy;
     }
 
     public boolean isNew() {
@@ -39,7 +49,7 @@ public abstract class BaseEntity {
 
     @Override
     public String toString() {
-        return "id=" + id;
+        return "\nid=" + id + " ";
     }
 
 }

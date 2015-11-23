@@ -1,11 +1,17 @@
 package com.edu.nc.bytesoft.model;
 
+import com.edu.nc.bytesoft.dao.annotation.AttributeName;
+
 import java.util.Date;
 
 public class Comment extends BaseEntity{
+    @AttributeName("ICM_AUTHOR")
     protected User author;
+    @AttributeName("ICM_ADD_DATE")
     protected Date addedDate;
+    @AttributeName("ICM_MESSAGE")
     protected String message;
+    @AttributeName("ICM_PARENT_COMMENT")
     protected Comment parent;
 
     public Comment() {

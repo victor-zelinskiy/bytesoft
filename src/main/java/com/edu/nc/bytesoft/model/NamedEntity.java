@@ -1,6 +1,9 @@
 package com.edu.nc.bytesoft.model;
 
-public abstract class NamedEntity extends BaseEntity {
+import com.edu.nc.bytesoft.dao.annotation.AttributeName;
+
+public class NamedEntity extends BaseEntity {
+    @AttributeName({"AIT_NAME", "USR_NAME", "ICN_NAME", "IPN_VALUE"})
     protected String name;
 
     public NamedEntity() {

@@ -1,28 +1,30 @@
 package com.edu.nc.bytesoft.model;
 
+import com.edu.nc.bytesoft.dao.annotation.AttributeName;
+
 import java.util.Date;
 import java.util.List;
-import java.util.Set;
 
-public class User extends BaseEntity {
+public class User extends Contact {
+    @AttributeName("USR_LOGIN")
     protected String login;
+
+    @AttributeName("USR_PASSWORD")
     protected String password;
+
+    @AttributeName("USR_REG_DATE")
     protected Date registered;
+
+    @AttributeName("USR_COMPANY_NAME")
     protected String companyName;
-    protected Set<Role> roles;
+
+    @AttributeName("USR_ROLES")
+    protected List<Role> roles;
+
+    @AttributeName("USR_CONTACTS")
     protected List<Contact> contacts;
 
     public User() {
-    }
-
-    public User(Long id, String login, String password, Date registered, String companyName, List<Contact> contacts, Set<Role> roles) {
-        super(id);
-        this.login = login;
-        this.password = password;
-        this.registered = registered;
-        this.companyName = companyName;
-        this.contacts = contacts;
-        this.roles = roles;
     }
 
     public String getLogin() {
@@ -57,11 +59,11 @@ public class User extends BaseEntity {
         this.companyName = companyName;
     }
 
-    public Set<Role> getRoles() {
+    public List<Role> getRoles() {
         return roles;
     }
 
-    public void setRoles(Set<Role> roles) {
+    public void setRoles(List<Role> roles) {
         this.roles = roles;
     }
 

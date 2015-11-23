@@ -1,22 +1,23 @@
 package com.edu.nc.bytesoft.model;
 
+import com.edu.nc.bytesoft.dao.annotation.AttributeName;
+
 import java.io.File;
 import java.util.List;
 
-public class Contact extends BaseEntity {
-    protected String firstName;
-    protected String lastName;
+public class Contact extends NamedEntity {
+    @AttributeName("USR_EMAIL")
     protected String email;
     protected File photo;
+    @AttributeName("USR_PHONE")
     protected List<String> phones;
 
     public Contact() {
     }
 
-    public Contact(Long id, String firstName, String lastName, String email, File photo, List<String> phones) {
-        super(id);
-        this.firstName = firstName;
-        this.lastName = lastName;
+    public Contact(Long id, String name, String email, File photo, List<String> phones) {
+        super(id, name);
+        this.name = name;
         this.email = email;
         this.photo = photo;
         this.phones = phones;
@@ -47,20 +48,12 @@ public class Contact extends BaseEntity {
         this.email = email;
     }
 
-    public String getLastName() {
-        return lastName;
+    public String getName() {
+        return name;
     }
 
-    public void setLastName(String lastName) {
-        this.lastName = lastName;
-    }
-
-    public String getFirstName() {
-        return firstName;
-    }
-
-    public void setFirstName(String firstName) {
-        this.firstName = firstName;
+    public void setName(String name) {
+        this.name = name;
     }
 
 
@@ -68,8 +61,6 @@ public class Contact extends BaseEntity {
     public String toString() {
         return "Contact{"
                 + super.toString() +
-                "firstName='" + firstName + '\'' +
-                ", lastName='" + lastName + '\'' +
                 ", email='" + email + '\'' +
                 ", photo=" + photo +
                 ", phones=" + phones +
