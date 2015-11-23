@@ -81,14 +81,14 @@ id=22 , name='Steven King', email='StevenKing@mail.ru', photo=null, phones=[+308
 ```
 
 ```java
-    @Test
-    public void getTaskTest() throws Exception {
-        String taskName = "Task 1 Name. Project 1";
-        ObjectDao<Task> taskDao = new ObjectDaoReflect<>(Task.class, dataSource.getConnection());
-        Task task = taskDao.getObjectById(78);
-        System.out.println(task);
-        assertThat(task.getName()).isEqualTo(taskName);
-    }
+       @Test
+       public void getTaskTest() throws Exception {
+            String taskName = "Task 2 Name. Project 1";
+            ObjectDao<Task> taskDao = new ObjectDaoReflect<>(Task.class, dataSource.getConnection());
+            Task task = taskDao.getObjectById(78);
+            System.out.println(task);
+            assertThat(task.getName()).isEqualTo(taskName);
+       }
 ```
 Результат выполнения:
 ```tex
