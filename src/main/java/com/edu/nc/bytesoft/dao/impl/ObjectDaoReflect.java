@@ -4,6 +4,7 @@ import com.edu.nc.bytesoft.Log;
 import com.edu.nc.bytesoft.dao.ObjectDao;
 import com.edu.nc.bytesoft.dao.TransactionManager;
 import com.edu.nc.bytesoft.dao.annotation.AttributeName;
+import com.edu.nc.bytesoft.dao.annotation.ObjTypeName;
 import com.edu.nc.bytesoft.dao.exception.NoSuchObjectException;
 import com.edu.nc.bytesoft.model.BaseEntity;
 import org.apache.commons.beanutils.BeanUtilsBean;
@@ -47,6 +48,10 @@ public class ObjectDaoReflect<T extends BaseEntity> implements ObjectDao<T> {
             "AND (ATTS.VALUE IS NOT NULL \n" +
             "OR ATTS.DATE_VALUE IS NOT NULL\n" +
             "OR OBJR.REFERENCE IS NOT NULL)";
+
+    private static final String QUERY_INSERT_OBJECT = "INSERT INTO OBJECTS (OBJECT_ID, OBJECT_TYPE_ID, NAME) SELECT OBJ_SEQ.NEXTVAL, OBJT.OBJECT_TYPE_ID, ? FROM OBJTYPE OBJT WHERE OBJT.CODE = ? AND ROWNUM = 1";
+
+    private static final String QUERY_GET_OBJ_SEQ_CURRVAL = "SELECT OBJ_SEQ.CURRVAL FROM DUAL";
 
     private Connection connection;
 
@@ -93,7 +98,6 @@ public class ObjectDaoReflect<T extends BaseEntity> implements ObjectDao<T> {
     }
 
 
-
     @Override
     public T getObjectById(long id) throws SQLException, NoSuchObjectException {
         T result = extractObject(id);
@@ -114,13 +118,21 @@ public class ObjectDaoReflect<T extends BaseEntity> implements ObjectDao<T> {
     }
 
     @Override
-    public boolean addObject(T object) {
-        throw new UnsupportedOperationException();
+    public long addObject(T object) throws SQLException {
+        long newObjectId = insertObject("", getObjTypeName(objectClass));
+        return newObjectId;
     }
 
     private Object firstNotNullValue(Object... values) {
         for (Object value : values) if (value != null && !value.equals("null")) return value;
         return null;
+    }
+
+    private String getObjTypeName(Class<?> aClass) {
+        if (aClass.isAnnotationPresent(ObjTypeName.class)) {
+            ObjTypeName objType = aClass.getAnnotation(ObjTypeName.class);
+            return objType.value();
+        } else throw new IllegalArgumentException();
     }
 
     private Field[] getAllDeclaredFields(Class<?> aClass) {
@@ -141,41 +153,53 @@ public class ObjectDaoReflect<T extends BaseEntity> implements ObjectDao<T> {
         return result;
     }
 
-    private T extractObject(long id) throws SQLException {
-        try (PreparedStatement statement = prepareGetByIdStatement(connection, id)) {
-            try (ResultSet resultSet = statement.executeQuery()) {
-                T result = objectClass.newInstance();
-                while (resultSet.next()) {
-                    String attributeName = resultSet.getString("CODE");
-                    Object value = firstNotNullValue(resultSet.getString("VALUE"), resultSet.getDate("DATE_VALUE"), resultSet.getBigDecimal("REFERENCE"));
-
-                    Field[] fields = getAllDeclaredFields(objectClass);
-                    putValueToField(result, value, fields, attributeName);
-
+    private long insertObject(String objName, String objTypeCode) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement(QUERY_INSERT_OBJECT)) {
+            statement.setString(1, objName);
+            statement.setString(2, objTypeCode);
+            statement.executeUpdate();
+            try (ResultSet resultSet = statement.executeQuery(QUERY_GET_OBJ_SEQ_CURRVAL)) {
+                if (resultSet.next()) {
+                    return resultSet.getLong(1);
                 }
-                return result;
-            } catch (InstantiationException | IllegalAccessException e) {
-                LOG.error("Cannot create instance: " + e);
-                return null;
             }
+            throw new SQLException();
         }
     }
 
-    private String extractString(long id) throws SQLException {
-        try (PreparedStatement statement = prepareGetByIdStatement(connection, id)) {
-            try (ResultSet resultSet = statement.executeQuery()) {
-                String result;
-                while (resultSet.next()) {
-                    String code = resultSet.getString("CODE");
-                    if (code.substring(code.lastIndexOf("_") + 1).equalsIgnoreCase("value")) {
-                        result = resultSet.getString("VALUE");
-                        return result;
-                    }
-                }
-                return null;
-            }
-        }
+    private T extractObject(long id) throws SQLException {
+        try (PreparedStatement statement = prepareGetByIdStatement(connection, id);
+             ResultSet resultSet = statement.executeQuery()) {
+            T result = objectClass.newInstance();
+            while (resultSet.next()) {
+                String attributeName = resultSet.getString("CODE");
+                Object value = firstNotNullValue(resultSet.getString("VALUE"), resultSet.getDate("DATE_VALUE"), resultSet.getBigDecimal("REFERENCE"));
 
+                Field[] fields = getAllDeclaredFields(objectClass);
+                putValueToField(result, value, fields, attributeName);
+
+            }
+            return result;
+        } catch (InstantiationException | IllegalAccessException e) {
+            LOG.error("Cannot create instance: " + e);
+            return null;
+        }
+    }
+
+
+    private String extractString(long id) throws SQLException {
+        try (PreparedStatement statement = prepareGetByIdStatement(connection, id);
+             ResultSet resultSet = statement.executeQuery()) {
+            String result;
+            while (resultSet.next()) {
+                String code = resultSet.getString("CODE");
+                if (code.substring(code.lastIndexOf("_") + 1).equalsIgnoreCase("value")) {
+                    result = resultSet.getString("VALUE");
+                    return result;
+                }
+            }
+            return null;
+        }
     }
 
     private Class<?> getFieldGenericType(Field field) {
@@ -194,7 +218,6 @@ public class ObjectDaoReflect<T extends BaseEntity> implements ObjectDao<T> {
     }
 
 
-
     private void putValueToField(Object object, Object value, Field[] fields, String attributeName) {
         if (attributeName == null) return;
         try {
@@ -202,7 +225,6 @@ public class ObjectDaoReflect<T extends BaseEntity> implements ObjectDao<T> {
                 if (field.isAnnotationPresent(AttributeName.class)) {
                     AttributeName attribute = field.getAnnotation(AttributeName.class);
                     if (Arrays.asList(attribute.value()).contains(attributeName)) {
-
                         if (BaseEntity.class.isAssignableFrom(field.getType())) {
                             if (utilsBean.getConvertUtils().lookup(field.getType()) == null) {
                                 utilsBean.getConvertUtils().register(entityConverter, field.getType());
@@ -223,7 +245,6 @@ public class ObjectDaoReflect<T extends BaseEntity> implements ObjectDao<T> {
             LOG.error("Cannot set property to object: " + e);
         }
     }
-
 
 
     private class EntityConverter implements Converter {

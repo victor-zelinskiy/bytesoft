@@ -19,6 +19,13 @@ public class ObjectDaoReflectTest {
     }
 
     @Test
+    public void addObjectTest() throws Exception {
+        ObjectDao<User> userDao = new ObjectDaoReflect<>(User.class, dataSource.getConnection());
+        System.out.println(userDao.addObject(new User()));
+
+    }
+
+    @Test
     public void getUserTest() throws Exception {
         String user1Name = "Alexander Hunold";
         String user2Name = "Steven King";

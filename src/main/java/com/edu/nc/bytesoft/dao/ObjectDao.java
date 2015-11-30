@@ -8,5 +8,5 @@ public interface ObjectDao<T> extends SettableConnection {
     T getObjectById(long id) throws SQLException, NoSuchObjectException;
     boolean updateObject(T object) throws NoSuchObjectException;
     boolean deleteObject(T object) throws NoSuchObjectException;
-    boolean addObject(T object);
+    long addObject(T object) throws SQLException;
 }

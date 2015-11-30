@@ -1,10 +1,12 @@
 package com.edu.nc.bytesoft.model;
 
 import com.edu.nc.bytesoft.dao.annotation.AttributeName;
+import com.edu.nc.bytesoft.dao.annotation.ObjTypeName;
 
 import java.util.Date;
 import java.util.List;
 
+@ObjTypeName("USER")
 public class User extends Contact {
     @AttributeName("USR_LOGIN")
     protected String login;
