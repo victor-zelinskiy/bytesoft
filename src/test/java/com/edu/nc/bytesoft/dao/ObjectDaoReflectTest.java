@@ -2,12 +2,16 @@ package com.edu.nc.bytesoft.dao;
 
 import com.edu.nc.bytesoft.dao.exception.NoSuchObjectException;
 import com.edu.nc.bytesoft.dao.impl.ObjectDaoReflect;
+import com.edu.nc.bytesoft.model.Status;
 import com.edu.nc.bytesoft.model.Task;
 import com.edu.nc.bytesoft.model.User;
 import org.junit.Test;
 
 import javax.sql.DataSource;
+import java.sql.Date;
 import java.sql.SQLException;
+import java.time.LocalDate;
+import java.util.Collections;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -20,8 +24,12 @@ public class ObjectDaoReflectTest {
 
     @Test
     public void addObjectTest() throws Exception {
-        ObjectDao<Task> userDao = new ObjectDaoReflect<>(Task.class, dataSource.getConnection());
-        System.out.println(userDao.addObject(new Task()));
+        ObjectDao<User> userDao = new ObjectDaoReflect<>(User.class, dataSource.getConnection());
+        User user1 = userDao.getObjectById(24); //Alexander Hunold
+
+        ObjectDao<Task> taskDao = new ObjectDaoReflect<>(Task.class, dataSource.getConnection());
+
+        taskDao.addObject(new Task("Test name", user1, Date.valueOf(LocalDate.now()), Status.STATUS_ACTIVE, Collections.singletonList(user1), 1,  Collections.singletonList(user1), null, null));
 
     }
 

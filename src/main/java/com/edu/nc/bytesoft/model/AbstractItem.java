@@ -22,8 +22,8 @@ public abstract class AbstractItem extends NamedEntity {
     public AbstractItem() {
     }
 
-    public AbstractItem(Long id, String name, User author, Date createdDate, Status status) {
-        super(id, name);
+    public AbstractItem(String name, User author, Date createdDate, Status status) {
+        super(name);
         this.author = author;
         this.createdDate = createdDate;
         this.status = status;

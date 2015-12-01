@@ -26,8 +26,8 @@ public class Task extends AbstractItem {
     public Task() {
     }
 
-    public Task(Long id, String name, User author, Date createdDate, Status status, List<User> assignUser, Integer priority, List<User> watchers, List<Comment> comments, Task parentTask) {
-        super(id, name, author, createdDate, status);
+    public Task(String name, User author, Date createdDate, Status status, List<User> assignUser, Integer priority, List<User> watchers, List<Comment> comments, Task parentTask) {
+        super(name, author, createdDate, status);
         this.assignUser = assignUser;
         this.priority = priority;
         this.watchers = watchers;

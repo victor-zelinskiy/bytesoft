@@ -20,10 +20,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 public class ObjectDaoReflect<T extends BaseEntity> implements ObjectDao<T> {
 
@@ -137,43 +134,112 @@ public class ObjectDaoReflect<T extends BaseEntity> implements ObjectDao<T> {
 
     @Override
     public long addObject(T object) throws SQLException {
-        String newObjectName = (object instanceof NamedEntity) ? ((NamedEntity)object).getName() : "";
-        //long newObjectId = insertObject(newObjectName, getObjTypeName(object.getClass()));
-        System.out.println(Arrays.toString(getAttributeNames(getObjTypeName(object.getClass()))));
-        return 0;
+
+        try {
+            String newObjectName = (object instanceof NamedEntity) ? ((NamedEntity) object).getName() : "";
+            long newObjectId = insertObject(newObjectName, getObjTypeName(object.getClass()));
+            object.setId(newObjectId);
+            System.out.println(generateInsertAttributesQuery(object, new ArrayList<>()));
+            return 0;
+        } catch (IllegalAccessException | NoSuchMethodException | InvocationTargetException e) {
+            throw new SQLException(e);
+        }
+
         //return newObjectId;
     }
+//
 
 
+    private String generateInsertAttributesQuery(T object, List<Date> dates) throws SQLException, IllegalAccessException, NoSuchMethodException, InvocationTargetException {
+        Set<String> attributeNames = new HashSet<>();
+        StringBuilder insertQuery = new StringBuilder("INSERT ALL");
+        Field[] fields = getDeclaredFields(object.getClass());
+        for (String attributeName : getAttributeNames(getObjTypeName(object.getClass()))) {
+            for (Field field : fields) {
+                if (field.isAnnotationPresent(AttributeName.class)) {
+                    field.setAccessible(true);
+                    Object attributeValue = field.get(object);
+                    if (attributeValue == null) continue;
+                    if (Arrays.asList(field.getAnnotation(AttributeName.class).value()).contains(attributeName)) {
+                        attributeNames.add(attributeName);
+                        if (BaseEntity.class.isAssignableFrom(field.getType())) {
+                            insertQuery.append(buildObjReferenceInsert(attributeName, object.getId().toString(), ((BaseEntity) attributeValue).getId().toString()));
+                        } else if (List.class.isAssignableFrom(field.getType())) {
+                            //
+                            insertQuery.append(buildInsertList(getFieldGenericType(field)));
 
-//    private String generateInsertAttributesQuery(T object) throws SQLException {
-//        for (String attributeName : getAttributeNames(getObjTypeName(object.getClass()))) {
-//
-//
-//        }
-//
-//        for (Field field : getDeclaredFields(object.getClass())) {
-//            if (field.isAnnotationPresent(AttributeName.class)) {
-//                AttributeName attribute = field.getAnnotation(AttributeName.class);
-//                if (Arrays.asList(attribute.value()).contains(attributeName)) {
-//                    if (BaseEntity.class.isAssignableFrom(field.getType())) {
-//                        if (utilsBean.getConvertUtils().lookup(field.getType()) == null) {
-//                            utilsBean.getConvertUtils().register(entityConverter, field.getType());
-//                        }
-//                    } else if (List.class.isAssignableFrom(field.getType())) {
-//                        field.setAccessible(true);
-//                        utilsBean.getConvertUtils().register(new ListConverter((List) field.get(object), getFieldGenericType(field)), field.getType());
-//                    } else if (field.getType().isEnum()) {
-//                        utilsBean.getConvertUtils().register(enumConverter, field.getType());
-//                    }
-//                    utilsBean.setProperty(object, field.getName(), value);
-//                    break;
-//                }
-//            }
-//        }
-//
-//    }
+                        } else if (field.getType().isEnum()) {
+                            //
+                            Method method = field.getType().getMethod("getId");
+                            insertQuery.append(buildObjReferenceInsert(attributeName, object.getId().toString(), method.invoke(field.get(object)).toString()));
+                        } else if (field.getType().equals(Date.class)) {
+                            //insertQuery.append("INTO ATTRIBUTES(ATTR_ID, OBJECT_ID, VALUE, DATE_VALUE) VALUES (" + attributeName + ", " + object.getId() + ", NULL, "+attributeValue+")")
+                        } else if (field.getType().equals(String.class) || Number.class.isAssignableFrom(field.getType())) {
+                            insertQuery.append(buildAttributesInsert(attributeName, object.getId().toString(), attributeValue.toString(), null));
+                        }
 
+                        //System.out.println(field.getName() + " " +utilsBean.getProperty(object, field.getName()));
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (attributeNames.size() > 0) {
+            insertQuery.append(buildInsertFooter(attributeNames.toArray(new String[attributeNames.size()])));
+            return insertQuery.toString();
+        } else throw new IllegalArgumentException();
+    }
+
+    private String buildAttributesInsert(String attributeId, String objectId, String value, Date dateValue) {
+        String dateMarker = (dateValue != null) ? "?" : null;
+        return " INTO ATTRIBUTES(ATTR_ID, OBJECT_ID, VALUE, DATE_VALUE) VALUES (" + attributeId +
+                ", " +
+                objectId +
+                ", " +
+                "'" +
+                value +
+                "'" +
+                ", " +
+                dateMarker +
+                " )";
+    }
+
+    private String buildObjReferenceInsert(String attributeId, String objectId, String reference) {
+        return " INTO OBJREFERENCE(ATTR_ID, OBJECT_ID, REFERENCE) VALUES (" + attributeId +
+                ", " +
+                objectId +
+                ", " +
+                reference +
+                ")";
+    }
+
+    private String buildInsertFooter(String[] attributeNames) {
+        StringBuilder result = new StringBuilder(" SELECT * FROM ( SELECT ATTR_ID, CODE FROM ATTRTYPE ) PIVOT ( MAX(ATTR_ID) FOR CODE IN (");
+        String prefix = "";
+        for (String attributeName : attributeNames) {
+            result
+                    .append(prefix)
+                    .append("'")
+                    .append(attributeName)
+                    .append("' ")
+                    .append(attributeName);
+            prefix = ",";
+        }
+        result.append("))");
+        return result.toString();
+    }
+
+    private String buildInsertList(Class<?> fieldGenericType) {
+        if (fieldGenericType.isEnum()) {
+
+        } else if (BaseEntity.class.isAssignableFrom(fieldGenericType)) {
+
+        } else if (fieldGenericType.equals(String.class)) {
+
+        }
+        return null;
+    }
 
 
     private String[] getAttributeNames(String objTypeName) throws SQLException {
@@ -317,6 +383,8 @@ public class ObjectDaoReflect<T extends BaseEntity> implements ObjectDao<T> {
         @SuppressWarnings("unchecked")
         public <V> V convert(Class<V> type, Object value) {
 
+            System.out.println("!!!!!TEST!!!");
+
             V result = null;
             try {
                 Long objectId = castToId(value);
@@ -343,11 +411,11 @@ public class ObjectDaoReflect<T extends BaseEntity> implements ObjectDao<T> {
     private class ListConverter implements Converter {
 
         private List list;
-        private Class<?> genericTypeOfList;
+        private Class<?> fieldGenericType;
 
-        public ListConverter(List list, Class<?> genericTypeOfList) {
+        public ListConverter(List list, Class<?> fieldGenericType) {
             this.list = list;
-            this.genericTypeOfList = genericTypeOfList;
+            this.fieldGenericType = fieldGenericType;
         }
 
         @Override
@@ -361,11 +429,11 @@ public class ObjectDaoReflect<T extends BaseEntity> implements ObjectDao<T> {
 
             try {
                 Object toList = null;
-                if (genericTypeOfList.isEnum()) {
-                    toList = enumConverter.convert(genericTypeOfList, value);
-                } else if (BaseEntity.class.isAssignableFrom(genericTypeOfList)) {
-                    toList = entityConverter.convert(genericTypeOfList, value);
-                } else if (genericTypeOfList.equals(String.class)) {
+                if (fieldGenericType.isEnum()) {
+                    toList = enumConverter.convert(fieldGenericType, value);
+                } else if (BaseEntity.class.isAssignableFrom(fieldGenericType)) {
+                    toList = entityConverter.convert(fieldGenericType, value);
+                } else if (fieldGenericType.equals(String.class)) {
                     toList = extractString(castToId(value));
                 }
 
