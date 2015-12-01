@@ -151,6 +151,7 @@ public class ObjectDaoReflect<T extends BaseEntity> implements ObjectDao<T> {
 
 
     private String generateInsertAttributesQuery(T object, List<Date> dates) throws SQLException, IllegalAccessException, NoSuchMethodException, InvocationTargetException {
+        //TODO: refact to inner SqlGeneratorClass
         Set<String> attributeNames = new HashSet<>();
         StringBuilder insertQuery = new StringBuilder("INSERT ALL");
         Field[] fields = getDeclaredFields(object.getClass());
@@ -163,6 +164,7 @@ public class ObjectDaoReflect<T extends BaseEntity> implements ObjectDao<T> {
                     if (Arrays.asList(field.getAnnotation(AttributeName.class).value()).contains(attributeName)) {
                         attributeNames.add(attributeName);
                         if (BaseEntity.class.isAssignableFrom(field.getType())) {
+                            //TODO: check ifNew then recursive insert
                             insertQuery.append(buildObjReferenceInsert(attributeName, object.getId().toString(), ((BaseEntity) attributeValue).getId().toString()));
                         } else if (List.class.isAssignableFrom(field.getType())) {
                             //
