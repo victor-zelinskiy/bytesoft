@@ -7,6 +7,7 @@ import com.edu.nc.bytesoft.dao.annotation.AttributeName;
 import com.edu.nc.bytesoft.dao.annotation.ObjTypeName;
 import com.edu.nc.bytesoft.dao.exception.NoSuchObjectException;
 import com.edu.nc.bytesoft.model.BaseEntity;
+import com.edu.nc.bytesoft.model.NamedEntity;
 import org.apache.commons.beanutils.BeanUtilsBean;
 import org.apache.commons.beanutils.Converter;
 
@@ -48,6 +49,23 @@ public class ObjectDaoReflect<T extends BaseEntity> implements ObjectDao<T> {
             "AND (ATTS.VALUE IS NOT NULL \n" +
             "OR ATTS.DATE_VALUE IS NOT NULL\n" +
             "OR OBJR.REFERENCE IS NOT NULL)";
+
+    private static final String QUERY_GET_ATTRIBUTES_BY_TYPE = "SELECT CODE\n" +
+            "FROM ATTRTYPE\n" +
+            "WHERE OBJECT_TYPE_ID IN \n" +
+            "                    (\n" +
+            "                      SELECT OBT.OBJECT_TYPE_ID\n" +
+            "                      FROM OBJTYPE OBT\n" +
+            "                      START WITH OBT.OBJECT_TYPE_ID = \n" +
+            "                      \n" +
+            "                        (\n" +
+            "                          SELECT OBJECT_TYPE_ID\n" +
+            "                          FROM OBJTYPE\n" +
+            "                          WHERE CODE = ?\n" +
+            "                          AND ROWNUM = 1\n" +
+            "                        )\n" +
+            "                      CONNECT BY PRIOR OBT.PARENT_ID = OBT.OBJECT_TYPE_ID\n" +
+            "                    )";
 
     private static final String QUERY_INSERT_OBJECT = "INSERT INTO OBJECTS (OBJECT_ID, OBJECT_TYPE_ID, NAME) SELECT OBJ_SEQ.NEXTVAL, OBJT.OBJECT_TYPE_ID, ? FROM OBJTYPE OBJT WHERE OBJT.CODE = ? AND ROWNUM = 1";
 
@@ -119,8 +137,56 @@ public class ObjectDaoReflect<T extends BaseEntity> implements ObjectDao<T> {
 
     @Override
     public long addObject(T object) throws SQLException {
-        long newObjectId = insertObject("", getObjTypeName(objectClass));
-        return newObjectId;
+        String newObjectName = (object instanceof NamedEntity) ? ((NamedEntity)object).getName() : "";
+        //long newObjectId = insertObject(newObjectName, getObjTypeName(object.getClass()));
+        System.out.println(Arrays.toString(getAttributeNames(getObjTypeName(object.getClass()))));
+        return 0;
+        //return newObjectId;
+    }
+
+
+
+//    private String generateInsertAttributesQuery(T object) throws SQLException {
+//        for (String attributeName : getAttributeNames(getObjTypeName(object.getClass()))) {
+//
+//
+//        }
+//
+//        for (Field field : getDeclaredFields(object.getClass())) {
+//            if (field.isAnnotationPresent(AttributeName.class)) {
+//                AttributeName attribute = field.getAnnotation(AttributeName.class);
+//                if (Arrays.asList(attribute.value()).contains(attributeName)) {
+//                    if (BaseEntity.class.isAssignableFrom(field.getType())) {
+//                        if (utilsBean.getConvertUtils().lookup(field.getType()) == null) {
+//                            utilsBean.getConvertUtils().register(entityConverter, field.getType());
+//                        }
+//                    } else if (List.class.isAssignableFrom(field.getType())) {
+//                        field.setAccessible(true);
+//                        utilsBean.getConvertUtils().register(new ListConverter((List) field.get(object), getFieldGenericType(field)), field.getType());
+//                    } else if (field.getType().isEnum()) {
+//                        utilsBean.getConvertUtils().register(enumConverter, field.getType());
+//                    }
+//                    utilsBean.setProperty(object, field.getName(), value);
+//                    break;
+//                }
+//            }
+//        }
+//
+//    }
+
+
+
+    private String[] getAttributeNames(String objTypeName) throws SQLException {
+        List<String> resultList = new ArrayList<>();
+        try (PreparedStatement statement = connection.prepareStatement(QUERY_GET_ATTRIBUTES_BY_TYPE)) {
+            statement.setString(1, objTypeName);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                while (resultSet.next()) {
+                    resultList.add(resultSet.getString(1));
+                }
+            }
+        }
+        return resultList.toArray(new String[resultList.size()]);
     }
 
     private Object firstNotNullValue(Object... values) {
@@ -135,7 +201,7 @@ public class ObjectDaoReflect<T extends BaseEntity> implements ObjectDao<T> {
         } else throw new IllegalArgumentException();
     }
 
-    private Field[] getAllDeclaredFields(Class<?> aClass) {
+    private Field[] getDeclaredFields(Class<?> aClass) {
         Class<?> current = aClass;
         List<Field> result = new ArrayList<>();
         while (current.getSuperclass() != null) {
@@ -175,8 +241,8 @@ public class ObjectDaoReflect<T extends BaseEntity> implements ObjectDao<T> {
                 String attributeName = resultSet.getString("CODE");
                 Object value = firstNotNullValue(resultSet.getString("VALUE"), resultSet.getDate("DATE_VALUE"), resultSet.getBigDecimal("REFERENCE"));
 
-                Field[] fields = getAllDeclaredFields(objectClass);
-                putValueToField(result, value, fields, attributeName);
+
+                putValueToField(result, value, attributeName);
 
             }
             return result;
@@ -218,10 +284,9 @@ public class ObjectDaoReflect<T extends BaseEntity> implements ObjectDao<T> {
     }
 
 
-    private void putValueToField(Object object, Object value, Field[] fields, String attributeName) {
-        if (attributeName == null) return;
+    private void putValueToField(Object object, Object value, String attributeName) {
         try {
-            for (Field field : fields) {
+            for (Field field : getDeclaredFields(object.getClass())) {
                 if (field.isAnnotationPresent(AttributeName.class)) {
                     AttributeName attribute = field.getAnnotation(AttributeName.class);
                     if (Arrays.asList(attribute.value()).contains(attributeName)) {
@@ -323,7 +388,7 @@ public class ObjectDaoReflect<T extends BaseEntity> implements ObjectDao<T> {
             V result = null;
 
             try {
-                Long objectId = (value instanceof BigDecimal) ? ((BigDecimal) value).longValue() : Long.valueOf((String) value);
+                Long objectId = castToId(value);
 
                 if (type.isEnum()) {
                     Method method = type.getDeclaredMethod("getById", Long.class);

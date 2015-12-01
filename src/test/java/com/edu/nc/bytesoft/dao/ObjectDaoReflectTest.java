@@ -20,8 +20,8 @@ public class ObjectDaoReflectTest {
 
     @Test
     public void addObjectTest() throws Exception {
-        ObjectDao<User> userDao = new ObjectDaoReflect<>(User.class, dataSource.getConnection());
-        System.out.println(userDao.addObject(new User()));
+        ObjectDao<Task> userDao = new ObjectDaoReflect<>(Task.class, dataSource.getConnection());
+        System.out.println(userDao.addObject(new Task()));
 
     }
 

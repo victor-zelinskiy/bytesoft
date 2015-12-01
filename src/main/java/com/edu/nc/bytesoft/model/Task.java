@@ -1,10 +1,12 @@
 package com.edu.nc.bytesoft.model;
 
 import com.edu.nc.bytesoft.dao.annotation.AttributeName;
+import com.edu.nc.bytesoft.dao.annotation.ObjTypeName;
 
 import java.util.Date;
 import java.util.List;
 
+@ObjTypeName("TASK")
 public class Task extends AbstractItem {
     @AttributeName("TSK_ASSIGN_USER")
     protected List<User> assignUser;
