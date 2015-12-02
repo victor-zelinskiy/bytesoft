@@ -435,7 +435,6 @@ public class ObjectDaoReflect<T extends BaseEntity> implements ObjectDao<T> {
 
             if (attributeNames.size() > 0) {
                 insertQuery.append(buildInsertFooter(attributeNames.toArray(new String[attributeNames.size()])));
-                System.out.println(insertQuery.toString());
                 return insertQuery.toString();
             } else throw new IllegalArgumentException();
         }
