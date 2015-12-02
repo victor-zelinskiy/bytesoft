@@ -3,7 +3,7 @@ package com.edu.nc.bytesoft.model;
 
 import org.springframework.security.core.GrantedAuthority;
 
-public enum Role implements GrantedAuthority {
+public enum Role implements GrantedAuthority, IdentifiableEnum {
     ROLE_CUSTOMER(2),
     ROLE_ADMIN(3),
     ROLE_DEVELOPER(4),

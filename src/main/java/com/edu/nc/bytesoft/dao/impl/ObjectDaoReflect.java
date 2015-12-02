@@ -7,6 +7,7 @@ import com.edu.nc.bytesoft.dao.annotation.AttributeName;
 import com.edu.nc.bytesoft.dao.annotation.ObjTypeName;
 import com.edu.nc.bytesoft.dao.exception.NoSuchObjectException;
 import com.edu.nc.bytesoft.model.BaseEntity;
+import com.edu.nc.bytesoft.model.IdentifiableEnum;
 import com.edu.nc.bytesoft.model.NamedEntity;
 import org.apache.commons.beanutils.BeanUtilsBean;
 import org.apache.commons.beanutils.Converter;
@@ -16,11 +17,9 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.math.BigDecimal;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.*;
+import java.util.Date;
 
 public class ObjectDaoReflect<T extends BaseEntity> implements ObjectDao<T> {
 
@@ -133,115 +132,20 @@ public class ObjectDaoReflect<T extends BaseEntity> implements ObjectDao<T> {
     }
 
     @Override
-    public long addObject(T object) throws SQLException {
-
+    public long addObject(BaseEntity object) throws SQLException {
         try {
             String newObjectName = (object instanceof NamedEntity) ? ((NamedEntity) object).getName() : "";
             long newObjectId = insertObject(newObjectName, getObjTypeName(object.getClass()));
             object.setId(newObjectId);
-            System.out.println(generateInsertAttributesQuery(object, new ArrayList<>()));
-            return 0;
+            try (PreparedStatement statement = prepareInsertStatement(object)) {
+                statement.executeUpdate();
+                return newObjectId;
+            }
         } catch (IllegalAccessException | NoSuchMethodException | InvocationTargetException e) {
             throw new SQLException(e);
         }
-
-        //return newObjectId;
-    }
-//
-
-
-    private String generateInsertAttributesQuery(T object, List<Date> dates) throws SQLException, IllegalAccessException, NoSuchMethodException, InvocationTargetException {
-        //TODO: refact to inner SqlGeneratorClass
-        Set<String> attributeNames = new HashSet<>();
-        StringBuilder insertQuery = new StringBuilder("INSERT ALL");
-        Field[] fields = getDeclaredFields(object.getClass());
-        for (String attributeName : getAttributeNames(getObjTypeName(object.getClass()))) {
-            for (Field field : fields) {
-                if (field.isAnnotationPresent(AttributeName.class)) {
-                    field.setAccessible(true);
-                    Object attributeValue = field.get(object);
-                    if (attributeValue == null) continue;
-                    if (Arrays.asList(field.getAnnotation(AttributeName.class).value()).contains(attributeName)) {
-                        attributeNames.add(attributeName);
-                        if (BaseEntity.class.isAssignableFrom(field.getType())) {
-                            //TODO: check ifNew then recursive insert
-                            insertQuery.append(buildObjReferenceInsert(attributeName, object.getId().toString(), ((BaseEntity) attributeValue).getId().toString()));
-                        } else if (List.class.isAssignableFrom(field.getType())) {
-                            //
-                            insertQuery.append(buildInsertList(getFieldGenericType(field)));
-
-                        } else if (field.getType().isEnum()) {
-                            //
-                            Method method = field.getType().getMethod("getId");
-                            insertQuery.append(buildObjReferenceInsert(attributeName, object.getId().toString(), method.invoke(field.get(object)).toString()));
-                        } else if (field.getType().equals(Date.class)) {
-                            //insertQuery.append("INTO ATTRIBUTES(ATTR_ID, OBJECT_ID, VALUE, DATE_VALUE) VALUES (" + attributeName + ", " + object.getId() + ", NULL, "+attributeValue+")")
-                        } else if (field.getType().equals(String.class) || Number.class.isAssignableFrom(field.getType())) {
-                            insertQuery.append(buildAttributesInsert(attributeName, object.getId().toString(), attributeValue.toString(), null));
-                        }
-
-                        //System.out.println(field.getName() + " " +utilsBean.getProperty(object, field.getName()));
-                        break;
-                    }
-                }
-            }
-        }
-
-        if (attributeNames.size() > 0) {
-            insertQuery.append(buildInsertFooter(attributeNames.toArray(new String[attributeNames.size()])));
-            return insertQuery.toString();
-        } else throw new IllegalArgumentException();
     }
 
-    private String buildAttributesInsert(String attributeId, String objectId, String value, Date dateValue) {
-        String dateMarker = (dateValue != null) ? "?" : null;
-        return " INTO ATTRIBUTES(ATTR_ID, OBJECT_ID, VALUE, DATE_VALUE) VALUES (" + attributeId +
-                ", " +
-                objectId +
-                ", " +
-                "'" +
-                value +
-                "'" +
-                ", " +
-                dateMarker +
-                " )";
-    }
-
-    private String buildObjReferenceInsert(String attributeId, String objectId, String reference) {
-        return " INTO OBJREFERENCE(ATTR_ID, OBJECT_ID, REFERENCE) VALUES (" + attributeId +
-                ", " +
-                objectId +
-                ", " +
-                reference +
-                ")";
-    }
-
-    private String buildInsertFooter(String[] attributeNames) {
-        StringBuilder result = new StringBuilder(" SELECT * FROM ( SELECT ATTR_ID, CODE FROM ATTRTYPE ) PIVOT ( MAX(ATTR_ID) FOR CODE IN (");
-        String prefix = "";
-        for (String attributeName : attributeNames) {
-            result
-                    .append(prefix)
-                    .append("'")
-                    .append(attributeName)
-                    .append("' ")
-                    .append(attributeName);
-            prefix = ",";
-        }
-        result.append("))");
-        return result.toString();
-    }
-
-    private String buildInsertList(Class<?> fieldGenericType) {
-        if (fieldGenericType.isEnum()) {
-
-        } else if (BaseEntity.class.isAssignableFrom(fieldGenericType)) {
-
-        } else if (fieldGenericType.equals(String.class)) {
-
-        }
-        return null;
-    }
 
 
     private String[] getAttributeNames(String objTypeName) throws SQLException {
@@ -279,10 +183,21 @@ public class ObjectDaoReflect<T extends BaseEntity> implements ObjectDao<T> {
         return result.toArray(new Field[result.size()]);
     }
 
-    private PreparedStatement prepareGetByIdStatement(Connection connection, long id) throws SQLException {
+    private PreparedStatement prepareGetByIdStatement(long id) throws SQLException {
         PreparedStatement result = connection.prepareStatement(QUERY_GET_OBJECT_BY_ID);
         for (int i = 1; i <= 3; i++) {
             result.setLong(i, id);
+        }
+        return result;
+    }
+
+    private PreparedStatement prepareInsertStatement(BaseEntity object) throws SQLException, IllegalAccessException, NoSuchMethodException, InvocationTargetException {
+        SqlGenerator sqlGenerator = new SqlGenerator();
+        PreparedStatement result = connection.prepareStatement(sqlGenerator.generateInsertAttributesQuery(object));
+        int index = 1;
+        for (Date date : sqlGenerator.lastGeneratedDates) {
+            java.sql.Date x = new java.sql.Date(date.getTime());
+            result.setDate(index++, x);
         }
         return result;
     }
@@ -302,13 +217,12 @@ public class ObjectDaoReflect<T extends BaseEntity> implements ObjectDao<T> {
     }
 
     private T extractObject(long id) throws SQLException {
-        try (PreparedStatement statement = prepareGetByIdStatement(connection, id);
+        try (PreparedStatement statement = prepareGetByIdStatement(id);
              ResultSet resultSet = statement.executeQuery()) {
             T result = objectClass.newInstance();
             while (resultSet.next()) {
                 String attributeName = resultSet.getString("CODE");
                 Object value = firstNotNullValue(resultSet.getString("VALUE"), resultSet.getDate("DATE_VALUE"), resultSet.getBigDecimal("REFERENCE"));
-
 
                 putValueToField(result, value, attributeName);
 
@@ -322,7 +236,7 @@ public class ObjectDaoReflect<T extends BaseEntity> implements ObjectDao<T> {
 
 
     private String extractString(long id) throws SQLException {
-        try (PreparedStatement statement = prepareGetByIdStatement(connection, id);
+        try (PreparedStatement statement = prepareGetByIdStatement(id);
              ResultSet resultSet = statement.executeQuery()) {
             String result;
             while (resultSet.next()) {
@@ -384,9 +298,6 @@ public class ObjectDaoReflect<T extends BaseEntity> implements ObjectDao<T> {
         @Override
         @SuppressWarnings("unchecked")
         public <V> V convert(Class<V> type, Object value) {
-
-            System.out.println("!!!!!TEST!!!");
-
             V result = null;
             try {
                 Long objectId = castToId(value);
@@ -472,4 +383,127 @@ public class ObjectDaoReflect<T extends BaseEntity> implements ObjectDao<T> {
         }
     }
 
+
+    private class SqlGenerator {
+
+        private List<Date> lastGeneratedDates = new ArrayList<>();
+
+        private Map<String, Field> getAnnotationValueFieldMap(Class aClass) {
+            Map<String, Field> result = new HashMap<>();
+            Field[] fields = getDeclaredFields(aClass);
+            for (Field field : fields) {
+                if (field.isAnnotationPresent(AttributeName.class)) {
+                    for (String value : field.getAnnotation(AttributeName.class).value()) {
+                        result.put(value, field);
+                    }
+                }
+            }
+            return result;
+        }
+
+        private String generateInsertAttributesQuery(BaseEntity object) throws SQLException, IllegalAccessException, NoSuchMethodException, InvocationTargetException {
+            Set<String> attributeNames = new HashSet<>();
+            StringBuilder insertQuery = new StringBuilder("INSERT ALL");
+            Map<String, Field> fieldMap = getAnnotationValueFieldMap(object.getClass());
+            lastGeneratedDates.clear();
+            for (String attributeName : getAttributeNames(getObjTypeName(object.getClass()))) {
+                Field field = fieldMap.get(attributeName);
+                if (field != null) {
+                    field.setAccessible(true);
+                    Object attributeValue = field.get(object);
+                    if (attributeValue != null) {
+                        attributeNames.add(attributeName);
+                        if (BaseEntity.class.isAssignableFrom(field.getType())) {
+                            BaseEntity reffereneObject = (BaseEntity) attributeValue;
+                            if (reffereneObject.isNew()) {
+                                reffereneObject.setId(addObject(reffereneObject));
+                            }
+                            insertQuery.append(buildObjReferenceInsert(attributeName, object.getId().toString(), reffereneObject.getId().toString()));
+                        } else if (List.class.isAssignableFrom(field.getType())) {
+                            insertQuery.append(buildInsertList(attributeName, object.getId().toString(), getFieldGenericType(field), (List<?>) field.get(object)));
+                        } else if (IdentifiableEnum.class.isAssignableFrom(field.getType())) {
+                            Method method = field.getType().getMethod("getId");
+                            insertQuery.append(buildObjReferenceInsert(attributeName, object.getId().toString(), method.invoke(field.get(object)).toString()));
+                        } else if (field.getType().equals(Date.class)) {
+                            insertQuery.append(buildAttributesInsert(attributeName, object.getId().toString(), null, (Date) attributeValue));
+                        } else if (field.getType().equals(String.class) || Number.class.isAssignableFrom(field.getType())) {
+                            insertQuery.append(buildAttributesInsert(attributeName, object.getId().toString(), attributeValue.toString(), null));
+                        }
+                    }
+                }
+            }
+
+            if (attributeNames.size() > 0) {
+                insertQuery.append(buildInsertFooter(attributeNames.toArray(new String[attributeNames.size()])));
+                System.out.println(insertQuery.toString());
+                return insertQuery.toString();
+            } else throw new IllegalArgumentException();
+        }
+
+        private String buildAttributesInsert(String attributeId, String objectId, String value, Date dateValue) {
+            String dateMarker = null;
+            if (dateValue != null) {
+                dateMarker = "?";
+                lastGeneratedDates.add(dateValue);
+            }
+            return " INTO ATTRIBUTES(ATTR_ID, OBJECT_ID, VALUE, DATE_VALUE) VALUES (" + attributeId +
+                    ", " +
+                    objectId +
+                    ", " +
+                    "'" +
+                    value +
+                    "'" +
+                    ", " +
+                    dateMarker +
+                    " )";
+        }
+
+        private String buildObjReferenceInsert(String attributeId, String objectId, String reference) {
+            return " INTO OBJREFERENCE(ATTR_ID, OBJECT_ID, REFERENCE) VALUES (" + attributeId +
+                    ", " +
+                    objectId +
+                    ", " +
+                    reference +
+                    ")";
+        }
+
+        private String buildInsertFooter(String[] attributeNames) {
+            StringBuilder result = new StringBuilder(" SELECT * FROM ( SELECT ATTR_ID, CODE FROM ATTRTYPE ) PIVOT ( MAX(ATTR_ID) FOR CODE IN (");
+            String prefix = "";
+            for (String attributeName : attributeNames) {
+                result
+                        .append(prefix)
+                        .append("'")
+                        .append(attributeName)
+                        .append("' ")
+                        .append(attributeName);
+                prefix = ",";
+            }
+            result.append("))");
+            return result.toString();
+        }
+
+        private String buildInsertList(String attributeId, String objectId, Class<?> listGenericType, List<?> list) throws SQLException {
+            StringBuilder result = new StringBuilder();
+            if (IdentifiableEnum.class.isAssignableFrom(listGenericType)) {
+                for (Object value : list) {
+                    IdentifiableEnum elem = (IdentifiableEnum) value;
+                    result.append(buildObjReferenceInsert(attributeId, objectId, String.valueOf(elem.getId())));
+                }
+                return result.toString();
+            } else if (BaseEntity.class.isAssignableFrom(listGenericType)) {
+                for (Object value : list) {
+                    BaseEntity elem = (BaseEntity) value;
+                    if (elem.isNew()) {
+                        elem.setId(addObject(elem));
+                    }
+                    result.append(buildObjReferenceInsert(attributeId, objectId, elem.getId().toString()));
+                }
+                return result.toString();
+            } else if (listGenericType.equals(String.class)) {
+
+            }
+            return "";
+        }
+    }
 }

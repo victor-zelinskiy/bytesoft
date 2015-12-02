@@ -1,6 +1,6 @@
 package com.edu.nc.bytesoft.model;
 
-public enum Status {
+public enum Status implements IdentifiableEnum {
     STATUS_ACTIVE(13),
     STATUS_RESOLVED(14),
     STATUS_SUSPENDED(15),
