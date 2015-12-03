@@ -235,11 +235,11 @@ public class ObjectDaoReflect<T extends BaseEntity> implements ObjectDao<T> {
     }
 
 
-    private String extractString(long id) throws SQLException {
+    private String extractListStringValue(long id) throws SQLException {
         try (PreparedStatement statement = prepareGetByIdStatement(id);
              ResultSet resultSet = statement.executeQuery()) {
             String result;
-            while (resultSet.next()) {
+            if (resultSet.next()) {
                 String code = resultSet.getString("CODE");
                 if (code.substring(code.lastIndexOf("_") + 1).equalsIgnoreCase("value")) {
                     result = resultSet.getString("VALUE");
@@ -347,7 +347,7 @@ public class ObjectDaoReflect<T extends BaseEntity> implements ObjectDao<T> {
                 } else if (BaseEntity.class.isAssignableFrom(fieldGenericType)) {
                     toList = entityConverter.convert(fieldGenericType, value);
                 } else if (fieldGenericType.equals(String.class)) {
-                    toList = extractString(castToId(value));
+                    toList = extractListStringValue(castToId(value));
                 }
 
                 if (toList != null) {
