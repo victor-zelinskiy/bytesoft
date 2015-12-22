@@ -68,7 +68,9 @@ public class MainUI extends UI {
     }
 
     private void showLoginForm() {
-        setContent(applicationContext.getBean(LoginForm.class));
+        setContent(new LoginForm(vaadinSecurity, eventBus));
+
+//        setContent(applicationContext.getBean(LoginForm.class));
     }
 
     private void showMainForm() {
