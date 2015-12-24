@@ -45,9 +45,30 @@ public class TaskForm extends HorizontalLayout{
 
     private Component buildFields(){
         FormLayout fields = new FormLayout();
+        ListSelect projects = new ListSelect("Project: ");
+        projects.setRows(1);
+        projects.setMultiSelect(false);
+        projects.setNullSelectionAllowed(false);
+        fields.addComponent(projects);
+        /*Тут получаем список всех проектов и выбираем один
+        * после выбора будет доступен список модулей этого проекта*/
+        ListSelect modules = new ListSelect("Module: ");
+        modules.setRows(1);
+        modules.setMultiSelect(false);
+        modules.setNullSelectionAllowed(false);
+        fields.addComponent(modules);
+        /*Выбираем модуль к которому относится таск или его родитель*/
+        ListSelect allTasks = new ListSelect("Parent task: ");
+        allTasks.setRows(1);
+        allTasks.setMultiSelect(false);
+        allTasks.setNullSelectionAllowed(true);/*таск может быть связан с другим, а может и не быть*/
+        fields.addComponent(allTasks);
+
         fields.addComponent(new TextField("Assigned to: "));
+
         fields.addComponent(new DateField("Deadline date: "));
         fields.addComponent(new TextArea("Description: "));
+
         ListSelect priority = new ListSelect("Priority: ");
         priority.addItems("Critical");
         priority.addItems("Highest");
