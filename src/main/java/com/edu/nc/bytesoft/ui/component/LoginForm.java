@@ -91,12 +91,18 @@ public class LoginForm extends VerticalLayout {
         signin.setClickShortcut(ShortcutAction.KeyCode.ENTER);
         signin.focus();
 
+        final Button createModule= new Button("Create module");
+        createModule.addStyleName(ValoTheme.BUTTON_PRIMARY);
+   //     signin.setClickShortcut(ShortcutAction.KeyCode.ENTER);
+        createModule.focus();
+
         final Button signup = new Button("Sign Up");
         signup.addStyleName(ValoTheme.BUTTON_PRIMARY);
         signup.focus();
 
-        fields.addComponents(username, password, signin, signup);
+        fields.addComponents(username, password, signin, signup,createModule);
         fields.setComponentAlignment(signin, Alignment.BOTTOM_LEFT);
+        fields.setComponentAlignment(createModule, Alignment.BOTTOM_LEFT);
         fields.setComponentAlignment(signup, Alignment.BOTTOM_LEFT);
 
         signin.addClickListener((Button.ClickListener) event -> login(username
@@ -104,6 +110,8 @@ public class LoginForm extends VerticalLayout {
 
         signup.addClickListener((Button.ClickListener) event -> MainUI.getCurrent().setContent(
                 new SignUpForm(vaadinSecurity, eventBus)));
+        createModule.addClickListener((Button.ClickListener) event2 -> MainUI.getCurrent().setContent(
+                new ModuleForm(vaadinSecurity, eventBus)));
         return fields;
 
     }
