@@ -96,7 +96,6 @@ public class ModuleForm extends HorizontalLayout{
         priority.setRows(1);
         fields.addComponent(priority);
 
-
         Component buttonCreate = new Button("Create module");
         buttonCreate.setStyleName(ValoTheme.BUTTON_PRIMARY);
         buttonCreate.setWidth(180, Sizeable.UNITS_PIXELS);

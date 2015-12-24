@@ -93,7 +93,7 @@ public class LoginForm extends VerticalLayout {
 
         final Button createModule= new Button("Create module");
         createModule.addStyleName(ValoTheme.BUTTON_PRIMARY);
-   //     signin.setClickShortcut(ShortcutAction.KeyCode.ENTER);
+       signin.setClickShortcut(ShortcutAction.KeyCode.ENTER);
         createModule.focus();
 
         final Button signup = new Button("Sign Up");
