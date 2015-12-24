@@ -110,7 +110,7 @@ public class LoginForm extends VerticalLayout {
 
         signup.addClickListener((Button.ClickListener) event -> MainUI.getCurrent().setContent(
                 new SignUpForm(vaadinSecurity, eventBus)));
-        createModule.addClickListener((Button.ClickListener) event2 -> MainUI.getCurrent().setContent(
+        createModule.addClickListener((Button.ClickListener) moduleEvent -> MainUI.getCurrent().setContent(
                 new ModuleForm(vaadinSecurity, eventBus)));
         return fields;
 
