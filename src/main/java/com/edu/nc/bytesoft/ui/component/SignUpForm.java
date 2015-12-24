@@ -66,7 +66,7 @@ public class SignUpForm extends VerticalLayout{
         optionGroup.addListener(new Property.ValueChangeListener() {
             @Override
             public void valueChange(Property.ValueChangeEvent event) {
-
+                System.out.println(optionGroup.getValue());
             }
         });
 
