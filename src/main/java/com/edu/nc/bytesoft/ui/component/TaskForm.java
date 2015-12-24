@@ -13,7 +13,7 @@ import org.vaadin.spring.security.VaadinSecurity;
 
 @PrototypeScope
 @SpringComponent
-public class TaskForm extends HorizontalLayout{
+public class TaskForm extends HorizontalLayout {
     @Autowired
     ApplicationContext applicationContext;
 
@@ -21,20 +21,20 @@ public class TaskForm extends HorizontalLayout{
     private final EventBus eventBus;
 
     @Autowired
-    public TaskForm(VaadinSecurity security, EventBus.SessionEventBus eventBus){
+    public TaskForm(VaadinSecurity security, EventBus.SessionEventBus eventBus) {
         this.security = security;
         this.eventBus = eventBus;
         initLayout();
     }
 
-    private void initLayout(){
+    private void initLayout() {
         setSizeFull();
         Component taskForm = taskForm();
         addComponent(taskForm);
         setComponentAlignment(taskForm, Alignment.MIDDLE_CENTER);
     }
 
-    private Component taskForm(){
+    private Component taskForm() {
         final FormLayout taskForm = new FormLayout();
         taskForm.setSizeUndefined();
         taskForm.setSpacing(true);
@@ -43,7 +43,7 @@ public class TaskForm extends HorizontalLayout{
         return taskForm;
     }
 
-    private Component buildFields(){
+    private Component buildFields() {
         FormLayout fields = new FormLayout();
         ListSelect projects = new ListSelect("Project: ");
         projects.setRows(1);

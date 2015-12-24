@@ -16,7 +16,7 @@ import org.vaadin.spring.security.VaadinSecurity;
 
 @PrototypeScope
 @SpringComponent
-public class SignUpForm extends VerticalLayout{
+public class SignUpForm extends VerticalLayout {
 
     @Autowired
     ApplicationContext applicationContext;
