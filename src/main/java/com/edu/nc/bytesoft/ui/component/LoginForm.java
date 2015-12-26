@@ -114,8 +114,7 @@ public class LoginForm extends VerticalLayout {
         signin.addClickListener((Button.ClickListener) event -> login(username
                 .getValue(), password.getValue()));
 
-        signup.addClickListener((Button.ClickListener) event -> MainUI.getCurrent().setContent(
-                new SignUpForm(vaadinSecurity, eventBus)));
+        signup.addClickListener((Button.ClickListener) event -> setSignUpWindow());
         createModule.addClickListener((Button.ClickListener) moduleEvent -> MainUI.getCurrent().setContent(
                 new ModuleForm(vaadinSecurity, eventBus)));
         createTask.addClickListener((Button.ClickListener) moduleEvent -> MainUI.getCurrent().setContent(
@@ -139,5 +138,12 @@ public class LoginForm extends VerticalLayout {
             Notification.show("An unexpected error occurred", ex.getMessage(), Notification.Type.ERROR_MESSAGE);
             LoggerFactory.getLogger(getClass()).error("Unexpected error while logging in", ex);
         }
+    }
+
+    public void setSignUpWindow(){
+        SignUpForm sub = new SignUpForm();
+        sub.setWidth("95%");
+        sub.setHeight("95%");
+        MainUI.getCurrent().addWindow(sub);
     }
 }
