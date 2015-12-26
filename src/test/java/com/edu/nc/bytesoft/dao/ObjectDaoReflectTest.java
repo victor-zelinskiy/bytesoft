@@ -19,14 +19,34 @@ public class ObjectDaoReflectTest {
     }
 
     @Test
-    public void addObjectTest() throws Exception {
-        ObjectDao<Task> taskDao = new ObjectDaoReflect<>(Task.class, dataSource.getConnection());
-        Task testTask = taskDao.getObjectById(78);
-        testTask.setId(null);
-        Task testTask1 = taskDao.getObjectById(taskDao.addObject(testTask));
+    public void inserTest() throws Exception {
+        ObjectDao<User> userDao = new ObjectDaoReflect<>(User.class, dataSource.getConnection());
+        User testUser1 = userDao.getById(22);
+        testUser1.setId(null);
+        User testUser2 = userDao.getById(userDao.save(testUser1).getId());
 
-        System.out.println(testTask1);
-        assertThat(testTask1).isEqualToComparingFieldByField(testTask);
+        System.out.println(testUser1);
+        System.out.println(testUser2);
+        assertThat(testUser1).isEqualToComparingFieldByField(testUser2);
+    }
+
+    @Test
+    public void test() throws Exception {
+        ObjectDaoReflect<User> userDao = new ObjectDaoReflect<>(User.class, dataSource.getConnection());
+        System.out.println(userDao.checkIfAttributeExist(32, 3, "OBJREFERENCE"));
+    }
+
+    @Test
+    public void updateTest() throws Exception {
+        ObjectDao<User> userDao = new ObjectDaoReflect<>(User.class, dataSource.getConnection());
+        User testUser1 = userDao.getById(22);
+        testUser1.setName("Test Name");
+        userDao.save(testUser1);
+        User testUser2 = userDao.getById(22);
+
+        System.out.println(testUser1);
+        System.out.println(testUser2);
+        assertThat(testUser1).isEqualToComparingFieldByField(testUser2);
     }
 
     @Test
@@ -34,11 +54,11 @@ public class ObjectDaoReflectTest {
         String user1Name = "Alexander Hunold";
         String user2Name = "Steven King";
         ObjectDao<User> userDao = new ObjectDaoReflect<>(User.class, dataSource.getConnection());
-        User user1 = userDao.getObjectById(24); //Alexander Hunold
+        User user1 = userDao.getById(24); //Alexander Hunold
         System.out.println(user1);
         assertThat(user1.getName()).isEqualTo(user1Name);
 
-        User user2 = userDao.getObjectById(22); //Steven King
+        User user2 = userDao.getById(22); //Steven King
         System.out.println(user2);
         assertThat(user2.getName()).isEqualTo(user2Name);
     }
@@ -47,7 +67,7 @@ public class ObjectDaoReflectTest {
     public void getTaskTest() throws Exception {
         String taskName = "Task 2 Name. Project 1";
         ObjectDao<Task> taskDao = new ObjectDaoReflect<>(Task.class, dataSource.getConnection());
-        Task task = taskDao.getObjectById(78);
+        Task task = taskDao.getById(78);
         System.out.println(task);
         assertThat(task.getName()).isEqualTo(taskName);
     }
@@ -56,7 +76,7 @@ public class ObjectDaoReflectTest {
     public void lazyUsageExample() throws Exception {
         String taskName = "Task 2 Name. Project 1";
         ObjectDao<Task> taskDao = new ObjectDaoReflect<>(Task.class, dataSource.getConnection(), true);
-        Task task = taskDao.getObjectById(78);
+        Task task = taskDao.getById(78);
         System.out.println(task);
         assertThat(task.getName()).isEqualTo(taskName);
     }
@@ -70,8 +90,8 @@ public class ObjectDaoReflectTest {
 
         try (TransactionManager.Transaction transaction = transactionManager.startTransaction()) {
             try {
-                Task task = taskDao.getObjectById(77);
-                User user = userDao.getObjectById(22);
+                Task task = taskDao.getById(77);
+                User user = userDao.getById(22);
                 transaction.commit();
             } catch (SQLException | NoSuchObjectException e) {
                 transaction.rollback();
