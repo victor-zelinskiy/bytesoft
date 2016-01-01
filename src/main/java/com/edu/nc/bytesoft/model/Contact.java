@@ -10,12 +10,12 @@ public class Contact extends NamedEntity {
     protected String email;
     protected File photo;
     @AttributeName("USR_PHONE")
-    protected List<String> phones;
+    protected List<NamedEntity> phones;
 
     public Contact() {
     }
 
-    public Contact(Long id, String name, String email, File photo, List<String> phones) {
+    public Contact(Long id, String name, String email, File photo, List<NamedEntity> phones) {
         super(id, name);
         this.name = name;
         this.email = email;
@@ -24,11 +24,11 @@ public class Contact extends NamedEntity {
     }
 
 
-    public List<String> getPhones() {
+    public List<NamedEntity> getPhones() {
         return phones;
     }
 
-    public void setPhones(List<String> phones) {
+    public void setPhones(List<NamedEntity> phones) {
         this.phones = phones;
     }
 

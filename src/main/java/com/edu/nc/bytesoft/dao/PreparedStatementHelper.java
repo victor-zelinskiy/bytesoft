@@ -9,10 +9,11 @@ import java.util.function.Function;
 
 public class PreparedStatementHelper {
     private Map<Class, OperationHolder> operations = new HashMap<>();
+    private int index;
 
     public PreparedStatementHelper() {
-        operations.put(String.class, new OperationHolder<>((preparedStatement, o) -> preparedStatement.setString(1, (String) o), resultSet -> resultSet.getString(1)));
-        operations.put(Long.class, new OperationHolder<>((preparedStatement, o) -> preparedStatement.setLong(1, (Long) o), resultSet -> resultSet.getLong(1)));
+        operations.put(String.class, new OperationHolder<>((preparedStatement, o) -> preparedStatement.setString(index++, (String) o), resultSet -> resultSet.getString(1)));
+        operations.put(Long.class, new OperationHolder<>((preparedStatement, o) -> preparedStatement.setLong(index++, (Long) o), resultSet -> resultSet.getLong(1)));
     }
 
 
@@ -21,13 +22,15 @@ public class PreparedStatementHelper {
     }
 
 
-
+    public void resetIndex() {
+        index = 1;
+    }
 
     public class OperationHolder<T> {
         private BiConsumer<PreparedStatement, T> inOperation;
         private Function<ResultSet, T> outOperation;
 
-        public OperationHolder(CheckedBiConsumer<PreparedStatement, T> inOperation, CheckedFunction<ResultSet, T> outOperation) {
+        private OperationHolder(CheckedBiConsumer<PreparedStatement, T> inOperation, CheckedFunction<ResultSet, T> outOperation) {
             this.inOperation = inOperation;
             this.outOperation = outOperation;
         }

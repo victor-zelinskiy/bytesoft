@@ -6,8 +6,6 @@ import java.sql.SQLException;
 
 public interface ObjectDao<T> extends SettableConnection {
     T getById(long id) throws SQLException, NoSuchObjectException;
-    //boolean updateObject(T object) throws NoSuchObjectException;
     boolean delete(T object) throws NoSuchObjectException;
     T save (T object) throws SQLException, NoSuchObjectException;
-    //long addObject(BaseEntity object) throws SQLException;
 }

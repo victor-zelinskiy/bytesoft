@@ -24,7 +24,6 @@ public class ObjectDaoReflectTest {
         User testUser1 = userDao.getById(22);
         testUser1.setId(null);
         User testUser2 = userDao.getById(userDao.save(testUser1).getId());
-
         System.out.println(testUser1);
         System.out.println(testUser2);
         assertThat(testUser1).isEqualToComparingFieldByField(testUser2);
