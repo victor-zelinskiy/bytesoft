@@ -161,12 +161,14 @@ public class ObjectDaoReflect<T extends BaseEntity> implements ObjectDao<T> {
 
     private <P extends BaseEntity> P update(P object) throws SQLException, NoSuchObjectException {
         try {
-            List<PreparedStatement> preparedUpdateStatements = prepareUpdateAttributesStatement(object);
-            for (PreparedStatement updateStatement : preparedUpdateStatements) {
-//                try (updateStatement) {
-//                    updateStatement.executeUpdate();
+            prepareUpdateAttributesStatement(object);
+
+//            for (PreparedStatement preparedUpdateStatement : prepareUpdateAttributesStatement(object)) {
+//                try (PreparedStatement statement = preparedUpdateStatement) {
+//                    statement.executeUpdate();
 //                }
-            }
+//            }
+            return object;
         } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
             throw new SQLException(e);
         }
@@ -248,6 +250,8 @@ public class ObjectDaoReflect<T extends BaseEntity> implements ObjectDao<T> {
             if (query.indexOf('?') >= 0) {
                 statement.setDate(1, new java.sql.Date(lastGeneratedDates.get(index++).getTime()));
             }
+            System.out.println(query);
+            statement.executeUpdate();
             result.add(statement);
         }
         return result;
@@ -490,7 +494,7 @@ public class ObjectDaoReflect<T extends BaseEntity> implements ObjectDao<T> {
                             }
                             updateQueries.add(buildObjReferenceUpdate(String.valueOf(attributeId), object.getId().toString(), reffereneObject.getId().toString()));
                         } else if (List.class.isAssignableFrom(field.getType())) {
-                            updateQueries.add(buildUpdateList(String.valueOf(attributeId), object.getId().toString(), getFieldGenericType(field), (List<?>) field.get(object)));
+                            updateQueries.addAll(buildUpdateList(String.valueOf(attributeId), object.getId().toString(), getFieldGenericType(field), (List<?>) field.get(object)));
                         } else if (IdentifiableEnum.class.isAssignableFrom(field.getType())) {
                             Method method = field.getType().getMethod("getId");
                             updateQueries.add(buildObjReferenceUpdate(String.valueOf(attributeId), object.getId().toString(), method.invoke(field.get(object)).toString()));
@@ -574,15 +578,15 @@ public class ObjectDaoReflect<T extends BaseEntity> implements ObjectDao<T> {
         }
 
         private String buildObjReferenceUpdate(String attributeId, String objectId, String reference) {
-            return "UPDATE OBJREFERENCE \n" +
-                    "SET REFERENCE = " + reference + "\n" +
-                    "WHERE ATTR_ID = " + attributeId + " AND OBJECT_ID = " + objectId + ";";
+            return "UPDATE OBJREFERENCE " +
+                    "SET REFERENCE = " + reference + " " +
+                    "WHERE ATTR_ID = " + attributeId + " AND OBJECT_ID = " + objectId;
         }
 
         private String buildObjectNameUpdate(String objectId, String name) {
-            return "UPDATE OBJECTS \n" +
-                    "SET NAME = " + name + "\n" +
-                    "WHERE OBJECT_ID = " + objectId + ";";
+            return "UPDATE OBJECTS " +
+                    "SET NAME = " + "'" + name + "'" + " " +
+                    "WHERE OBJECT_ID = " + objectId;
         }
 
         private String buildAttributeUpdate(String attributeId, String objectId, String value, Date dateValue) {
@@ -591,10 +595,10 @@ public class ObjectDaoReflect<T extends BaseEntity> implements ObjectDao<T> {
                 dateMarker = "?";
                 lastGeneratedDates.add(dateValue);
             }
-            return "UPDATE ATTRIBUTES \n" +
-                    "SET VALUE = " + value + "\n" +
-                    "SET DATE_VALUE = " + dateMarker + "\n" +
-                    "WHERE ATTR_ID = " + attributeId + " AND OBJECT_ID = " + objectId + ";";
+            return "UPDATE ATTRIBUTES " +
+                    "SET VALUE = " + "'" + value +  "'" + ", " +
+                    "DATE_VALUE = " + dateMarker + " " +
+                    "WHERE ATTR_ID = " + attributeId + " AND OBJECT_ID = " + objectId;
         }
 
 
@@ -614,33 +618,33 @@ public class ObjectDaoReflect<T extends BaseEntity> implements ObjectDao<T> {
             return result.toString();
         }
 
-        private String buildUpdateList(String attributeId, String objectId, Class<?> listGenericType, List<?> list) throws SQLException, NoSuchObjectException {
-            StringBuilder result = new StringBuilder();
+        private List<String> buildUpdateList(String attributeId, String objectId, Class<?> listGenericType, List<?> list) throws SQLException, NoSuchObjectException {
+            List<String> result = new LinkedList<>();
             if (IdentifiableEnum.class.isAssignableFrom(listGenericType)) {
                 for (Object value : list) {
                     IdentifiableEnum elem = (IdentifiableEnum) value;
-                    result.append(buildObjReferenceUpdate(attributeId, objectId, String.valueOf(elem.getId())));
+                    result.add(buildObjReferenceUpdate(attributeId, objectId, String.valueOf(elem.getId())));
                 }
-                return result.toString();
+                return result;
             } else if (listGenericType.equals(NamedEntity.class)) {
                 for (Object value : list) {
                     NamedEntity elem = (NamedEntity) value;
                     long listElemId = elem.getId();
-                    result.append(buildObjectNameUpdate(String.valueOf(listElemId), elem.getName()));
-                    result.append(buildAttributeUpdate(String.valueOf(64), String.valueOf(listElemId), elem.getName(), null));
+                    result.add(buildObjectNameUpdate(String.valueOf(listElemId), elem.getName()));
+                    result.add(buildAttributeUpdate(String.valueOf(64), String.valueOf(listElemId), elem.getName(), null));
                 }
-                return result.toString();
+                return result;
             } else if (BaseEntity.class.isAssignableFrom(listGenericType)) {
                 for (Object value : list) {
                     BaseEntity elem = (BaseEntity) value;
                     if (elem.isNew()) {
                         elem = insert(elem);
                     }
-                    result.append(buildObjReferenceUpdate(attributeId, objectId, elem.getId().toString()));
+                    result.add(buildObjReferenceUpdate(attributeId, objectId, elem.getId().toString()));
                 }
-                return result.toString();
+                return result;
             }
-            return "";
+            return result;
         }
 
         private String buildInsertList(String attributeCode, String objectId, Class<?> listGenericType, List<?> list) throws SQLException, NoSuchObjectException {
