@@ -52,6 +52,19 @@ public class ObjectDaoReflectTest {
         assertThat(testUser1.equals(testUser2)).isTrue();
     }
 
+    @Test(expected = NoSuchObjectException.class)
+    public void deleteTest() throws Exception {
+        ObjectDao<User> userDao = new ObjectDaoReflect<>(User.class, dataSource.getConnection());
+        User testUser1 = userDao.getById(22);
+        testUser1.setId(null);
+        long newId;
+        User testUser2 = userDao.getById(userDao.save(testUser1).getId());
+        newId = testUser2.getId();
+        boolean isDeleted = userDao.delete(testUser2);
+        assertThat(isDeleted).isTrue();
+        System.out.println(userDao.getById(newId));
+    }
+
     @Test
     public void getUserTest() throws Exception {
         String user1Name = "Alexander Hunold";
