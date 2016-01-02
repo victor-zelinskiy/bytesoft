@@ -1,33 +1,37 @@
 package com.edu.nc.bytesoft.model;
 
-import java.io.File;
-import java.util.List;
+import com.edu.nc.bytesoft.dao.annotation.AttributeName;
+import org.apache.commons.collections.CollectionUtils;
 
-public class Contact extends BaseEntity {
-    protected String firstName;
-    protected String lastName;
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+
+public class Contact extends NamedEntity {
+    @AttributeName("USR_EMAIL")
     protected String email;
     protected File photo;
-    protected List<String> phones;
+    @AttributeName("USR_PHONE")
+    protected List<NamedEntity> phones = new ArrayList<>();
 
     public Contact() {
     }
 
-    public Contact(Long id, String firstName, String lastName, String email, File photo, List<String> phones) {
-        super(id);
-        this.firstName = firstName;
-        this.lastName = lastName;
+    public Contact(Long id, String name, String email, File photo, List<NamedEntity> phones) {
+        super(id, name);
+        this.name = name;
         this.email = email;
         this.photo = photo;
         this.phones = phones;
     }
 
 
-    public List<String> getPhones() {
+    public List<NamedEntity> getPhones() {
         return phones;
     }
 
-    public void setPhones(List<String> phones) {
+    public void setPhones(List<NamedEntity> phones) {
         this.phones = phones;
     }
 
@@ -47,20 +51,12 @@ public class Contact extends BaseEntity {
         this.email = email;
     }
 
-    public String getLastName() {
-        return lastName;
+    public String getName() {
+        return name;
     }
 
-    public void setLastName(String lastName) {
-        this.lastName = lastName;
-    }
-
-    public String getFirstName() {
-        return firstName;
-    }
-
-    public void setFirstName(String firstName) {
-        this.firstName = firstName;
+    public void setName(String name) {
+        this.name = name;
     }
 
 
@@ -68,11 +64,26 @@ public class Contact extends BaseEntity {
     public String toString() {
         return "Contact{"
                 + super.toString() +
-                "firstName='" + firstName + '\'' +
-                ", lastName='" + lastName + '\'' +
                 ", email='" + email + '\'' +
                 ", photo=" + photo +
                 ", phones=" + phones +
                 "} ";
+    }
+
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Contact)) return false;
+        if (!super.equals(o)) return false;
+        Contact contact = (Contact) o;
+        return Objects.equals(getEmail(), contact.getEmail()) &&
+                Objects.equals(getPhoto(), contact.getPhoto()) &&
+                CollectionUtils.isEqualCollection(getPhones(), contact.getPhones());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), getEmail(), getPhoto(), getPhones());
     }
 }

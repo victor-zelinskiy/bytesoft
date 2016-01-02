@@ -1,17 +1,42 @@
 package com.edu.nc.bytesoft.model;
 
-import java.util.List;
+import com.edu.nc.bytesoft.dao.annotation.AttributeName;
+import com.edu.nc.bytesoft.dao.annotation.ObjTypeName;
+import org.apache.commons.collections.CollectionUtils;
 
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Objects;
+
+@ObjTypeName("TASK")
 public class Task extends AbstractItem {
+    @AttributeName("TSK_ASSIGN_USER")
     protected List<User> assignUser;
+
+    @AttributeName("TSK_PRIORITY")
     protected Integer priority;
-    protected List<User> watchers;
-    protected List<Comment> comments;
+
+    @AttributeName("TSK_WATCHERS")
+    protected List<User> watchers = new ArrayList<>();
+
+    @AttributeName("TSK_COMMENTS")
+    protected List<Comment> comments = new ArrayList<>();
+
+    @AttributeName("TSK_PARENT_TASK")
     protected Task parentTask;
 
     public Task() {
     }
 
+    public Task(String name, User author, Date createdDate, Status status, List<User> assignUser, Integer priority, List<User> watchers, List<Comment> comments, Task parentTask) {
+        super(name, author, createdDate, status);
+        this.assignUser = assignUser;
+        this.priority = priority;
+        this.watchers = watchers;
+        this.comments = comments;
+        this.parentTask = parentTask;
+    }
     public List<User> getAssignUser() {
         return assignUser;
     }
@@ -61,5 +86,24 @@ public class Task extends AbstractItem {
                 ", comments=" + comments +
                 ", parentTask=" + parentTask +
                 "} ";
+    }
+
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Task)) return false;
+        if (!super.equals(o)) return false;
+        Task task = (Task) o;
+        return Objects.equals(getAssignUser(), task.getAssignUser()) &&
+                Objects.equals(getPriority(), task.getPriority()) &&
+                CollectionUtils.isEqualCollection(getWatchers(), task.getWatchers()) &&
+                CollectionUtils.isEqualCollection(getComments(), task.getComments()) &&
+                Objects.equals(getParentTask(), task.getParentTask());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), getAssignUser(), getPriority(), getWatchers(), getComments(), getParentTask());
     }
 }

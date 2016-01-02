@@ -2,6 +2,7 @@ package com.edu.nc.bytesoft.model;
 
 import java.io.File;
 import java.util.Date;
+import java.util.Objects;
 
 public class Document extends NamedEntity {
     protected Date addedDate;
@@ -60,5 +61,23 @@ public class Document extends NamedEntity {
                 ", type=" + type +
                 ", file=" + file +
                 "} ";
+    }
+
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Document)) return false;
+        if (!super.equals(o)) return false;
+        Document document = (Document) o;
+        return Objects.equals(getAddedDate(), document.getAddedDate()) &&
+                Objects.equals(getDescription(), document.getDescription()) &&
+                getType() == document.getType() &&
+                Objects.equals(getFile(), document.getFile());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), getAddedDate(), getDescription(), getType(), getFile());
     }
 }

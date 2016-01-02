@@ -1,6 +1,7 @@
 package com.edu.nc.bytesoft.ui.component;
 
 import com.edu.nc.bytesoft.Log;
+import com.edu.nc.bytesoft.ui.MainUI;
 import com.vaadin.event.ShortcutAction;
 import com.vaadin.server.FontAwesome;
 import com.vaadin.server.Page;
@@ -11,6 +12,7 @@ import com.vaadin.ui.*;
 import com.vaadin.ui.themes.ValoTheme;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.vaadin.spring.annotation.PrototypeScope;
@@ -24,6 +26,9 @@ public class LoginForm extends VerticalLayout {
     private final VaadinSecurity vaadinSecurity;
     private final EventBus.SessionEventBus eventBus;
     private static final Log LOG = Log.get(LoginForm.class);
+
+    @Autowired
+    ApplicationContext applicationContext;
 
 
     @Autowired
@@ -86,15 +91,37 @@ public class LoginForm extends VerticalLayout {
         signin.setClickShortcut(ShortcutAction.KeyCode.ENTER);
         signin.focus();
 
-        fields.addComponents(username, password, signin);
+        final Button createModule = new Button("Create module");
+        createModule.addStyleName(ValoTheme.BUTTON_PRIMARY);
+        signin.setClickShortcut(ShortcutAction.KeyCode.ENTER);
+        createModule.focus();
+
+        final Button createTask = new Button("Create Task");
+        createModule.addStyleName(ValoTheme.BUTTON_PRIMARY);
+        signin.setClickShortcut(ShortcutAction.KeyCode.ENTER);
+        createModule.focus();
+
+        final Button signup = new Button("Sign Up");
+        signup.addStyleName(ValoTheme.BUTTON_PRIMARY);
+        signup.focus();
+
+        fields.addComponents(username, password, signin, signup, createModule, createTask);
         fields.setComponentAlignment(signin, Alignment.BOTTOM_LEFT);
+        fields.setComponentAlignment(createModule, Alignment.BOTTOM_LEFT);
+        fields.setComponentAlignment(createTask, Alignment.BOTTOM_LEFT);
+        fields.setComponentAlignment(signup, Alignment.BOTTOM_LEFT);
 
         signin.addClickListener((Button.ClickListener) event -> login(username
                 .getValue(), password.getValue()));
+
+        signup.addClickListener((Button.ClickListener) event -> setSignUpWindow());
+        createModule.addClickListener((Button.ClickListener) moduleEvent -> MainUI.getCurrent().setContent(
+                new ModuleForm(vaadinSecurity, eventBus)));
+        createTask.addClickListener((Button.ClickListener) moduleEvent -> MainUI.getCurrent().setContent(
+                new TaskForm(vaadinSecurity, eventBus)));
         return fields;
 
     }
-
 
     private void login(String login, String password) {
         try {
@@ -103,12 +130,20 @@ public class LoginForm extends VerticalLayout {
         } catch (AuthenticationException ex) {
             Notification notification = new Notification(
                     "Wrong password or username");
-            notification.setPosition(Position.BOTTOM_CENTER);
-            notification.setDelayMsec(2000);
+            notification.setStyleName(ValoTheme.NOTIFICATION_ERROR);
+            notification.setPosition(Position.MIDDLE_CENTER);
+            notification.setDelayMsec(1500);
             notification.show(Page.getCurrent());
         } catch (Exception ex) {
             Notification.show("An unexpected error occurred", ex.getMessage(), Notification.Type.ERROR_MESSAGE);
             LoggerFactory.getLogger(getClass()).error("Unexpected error while logging in", ex);
         }
+    }
+
+    public void setSignUpWindow(){
+        SignUpForm sub = new SignUpForm();
+        sub.setWidth("95%");
+        sub.setHeight("95%");
+        MainUI.getCurrent().addWindow(sub);
     }
 }

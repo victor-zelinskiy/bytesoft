@@ -1,28 +1,35 @@
 package com.edu.nc.bytesoft.model;
 
+import com.edu.nc.bytesoft.dao.annotation.AttributeName;
+import com.edu.nc.bytesoft.dao.annotation.ObjTypeName;
+import org.apache.commons.collections.CollectionUtils;
+
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.Set;
+import java.util.Objects;
 
-public class User extends BaseEntity {
+@ObjTypeName("USER")
+public class User extends Contact {
+    @AttributeName("USR_LOGIN")
     protected String login;
+
+    @AttributeName("USR_PASSWORD")
     protected String password;
+
+    @AttributeName("USR_REG_DATE")
     protected Date registered;
+
+    @AttributeName("USR_COMPANY_NAME")
     protected String companyName;
-    protected Set<Role> roles;
-    protected List<Contact> contacts;
+
+    @AttributeName("USR_ROLES")
+    protected List<Role> roles = new ArrayList<>();
+
+    @AttributeName("USR_CONTACTS")
+    protected List<Contact> contacts = new ArrayList<>();
 
     public User() {
-    }
-
-    public User(Long id, String login, String password, Date registered, String companyName, List<Contact> contacts, Set<Role> roles) {
-        super(id);
-        this.login = login;
-        this.password = password;
-        this.registered = registered;
-        this.companyName = companyName;
-        this.contacts = contacts;
-        this.roles = roles;
     }
 
     public String getLogin() {
@@ -57,11 +64,11 @@ public class User extends BaseEntity {
         this.companyName = companyName;
     }
 
-    public Set<Role> getRoles() {
+    public List<Role> getRoles() {
         return roles;
     }
 
-    public void setRoles(Set<Role> roles) {
+    public void setRoles(List<Role> roles) {
         this.roles = roles;
     }
 
@@ -83,5 +90,25 @@ public class User extends BaseEntity {
                 ", roles=" + roles +
                 ", contacts=" + contacts +
                 "} ";
+    }
+
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof User)) return false;
+        if (!super.equals(o)) return false;
+        User user = (User) o;
+        return Objects.equals(getLogin(), user.getLogin()) &&
+                Objects.equals(getPassword(), user.getPassword()) &&
+                Objects.equals(getRegistered(), user.getRegistered()) &&
+                Objects.equals(getCompanyName(), user.getCompanyName()) &&
+                CollectionUtils.isEqualCollection(getRoles(), user.getRoles()) &&
+                CollectionUtils.isEqualCollection(getContacts(), user.getContacts());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), getLogin(), getPassword(), getRegistered(), getCompanyName(), getRoles(), getContacts());
     }
 }
