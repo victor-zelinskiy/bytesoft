@@ -3,6 +3,7 @@ package com.edu.nc.bytesoft.model;
 import com.edu.nc.bytesoft.dao.annotation.AttributeName;
 
 import java.util.Date;
+import java.util.Objects;
 
 public abstract class AbstractItem extends NamedEntity {
 
@@ -86,5 +87,25 @@ public abstract class AbstractItem extends NamedEntity {
                 ", status=" + status +
                 ", deadlineDate=" + deadlineDate +
                 ", completedDate=" + completedDate;
+    }
+
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof AbstractItem)) return false;
+        if (!super.equals(o)) return false;
+        AbstractItem that = (AbstractItem) o;
+        return Objects.equals(getAuthor(), that.getAuthor()) &&
+                Objects.equals(getCreatedDate(), that.getCreatedDate()) &&
+                Objects.equals(getDescription(), that.getDescription()) &&
+                getStatus() == that.getStatus() &&
+                Objects.equals(getDeadlineDate(), that.getDeadlineDate()) &&
+                Objects.equals(getCompletedDate(), that.getCompletedDate());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), getAuthor(), getCreatedDate(), getDescription(), getStatus(), getDeadlineDate(), getCompletedDate());
     }
 }

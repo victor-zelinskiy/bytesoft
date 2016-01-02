@@ -1,16 +1,19 @@
 package com.edu.nc.bytesoft.model;
 
 import com.edu.nc.bytesoft.dao.annotation.AttributeName;
+import org.apache.commons.collections.CollectionUtils;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public class Contact extends NamedEntity {
     @AttributeName("USR_EMAIL")
     protected String email;
     protected File photo;
     @AttributeName("USR_PHONE")
-    protected List<NamedEntity> phones;
+    protected List<NamedEntity> phones = new ArrayList<>();
 
     public Contact() {
     }
@@ -65,5 +68,22 @@ public class Contact extends NamedEntity {
                 ", photo=" + photo +
                 ", phones=" + phones +
                 "} ";
+    }
+
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Contact)) return false;
+        if (!super.equals(o)) return false;
+        Contact contact = (Contact) o;
+        return Objects.equals(getEmail(), contact.getEmail()) &&
+                Objects.equals(getPhoto(), contact.getPhoto()) &&
+                CollectionUtils.isEqualCollection(getPhones(), contact.getPhones());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), getEmail(), getPhoto(), getPhones());
     }
 }

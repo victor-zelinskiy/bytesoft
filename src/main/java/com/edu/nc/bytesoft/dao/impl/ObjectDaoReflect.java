@@ -10,6 +10,7 @@ import com.edu.nc.bytesoft.dao.exception.NoSuchObjectException;
 import com.edu.nc.bytesoft.model.BaseEntity;
 import com.edu.nc.bytesoft.model.IdentifiableEnum;
 import com.edu.nc.bytesoft.model.NamedEntity;
+import javafx.util.Pair;
 import org.apache.commons.beanutils.BeanUtilsBean;
 import org.apache.commons.beanutils.Converter;
 
@@ -18,9 +19,12 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.math.BigDecimal;
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.*;
-import java.util.Date;
+import java.util.stream.Collectors;
 
 public class ObjectDaoReflect<T extends BaseEntity> implements ObjectDao<T> {
 
@@ -155,19 +159,21 @@ public class ObjectDaoReflect<T extends BaseEntity> implements ObjectDao<T> {
     public T save(T object) throws SQLException, NoSuchObjectException {
         if (object.isNew()) {
             object = insert(object);
-        } else update(object);
+        } else {
+            T oldObject = getById(object.getId());
+            update(object, oldObject);
+
+        }
         return object;
     }
 
-    private <P extends BaseEntity> P update(P object) throws SQLException, NoSuchObjectException {
+    private <P extends BaseEntity> P update(P object, Object oldObject) throws SQLException, NoSuchObjectException {
         try {
-            prepareUpdateAttributesStatement(object);
-
-//            for (PreparedStatement preparedUpdateStatement : prepareUpdateAttributesStatement(object)) {
-//                try (PreparedStatement statement = preparedUpdateStatement) {
-//                    statement.executeUpdate();
-//                }
-//            }
+            for (PreparedStatement preparedUpdateStatement : prepareUpdateAttributesStatement(object, oldObject)) {
+                try (PreparedStatement statement = preparedUpdateStatement) {
+                    statement.executeUpdate();
+                }
+            }
             return object;
         } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
             throw new SQLException(e);
@@ -239,19 +245,21 @@ public class ObjectDaoReflect<T extends BaseEntity> implements ObjectDao<T> {
         return result;
     }
 
-    private List<PreparedStatement> prepareUpdateAttributesStatement(BaseEntity object) throws SQLException, IllegalAccessException, NoSuchMethodException, InvocationTargetException, NoSuchObjectException {
+    private List<PreparedStatement> prepareUpdateAttributesStatement(BaseEntity object, Object oldObject) throws SQLException, IllegalAccessException, NoSuchMethodException, InvocationTargetException, NoSuchObjectException {
         List<PreparedStatement> result = new ArrayList<>();
         SqlGenerator sqlGenerator = new SqlGenerator();
-        List<String> queries = sqlGenerator.generateUpdateAttributesQueries(object);
-        List<Date> lastGeneratedDates = sqlGenerator.lastGeneratedDates;
+        List<String> queries = sqlGenerator.generateUpdateAttributesQueries(object, oldObject);
+        List<Pair<Date, Date>> lastGeneratedDates = sqlGenerator.lastGeneratedDates;
         int index = 0;
         for (String query : queries) {
             PreparedStatement statement = connection.prepareStatement(query);
             if (query.indexOf('?') >= 0) {
-                statement.setDate(1, new java.sql.Date(lastGeneratedDates.get(index++).getTime()));
+                statement.setDate(1, new java.sql.Date(lastGeneratedDates.get(index).getKey().getTime()));
+                statement.setDate(2, new java.sql.Date(lastGeneratedDates.get(index).getValue().getTime()));
+                index++;
             }
-            System.out.println(query);
-            statement.executeUpdate();
+//            System.out.println(query);
+//            statement.executeUpdate();
             result.add(statement);
         }
         return result;
@@ -262,8 +270,8 @@ public class ObjectDaoReflect<T extends BaseEntity> implements ObjectDao<T> {
         String sql = sqlGenerator.generateInsertAttributesQuery(object);
         PreparedStatement result = connection.prepareStatement(sql);
         int index = 1;
-        for (Date date : sqlGenerator.lastGeneratedDates) {
-            java.sql.Date x = new java.sql.Date(date.getTime());
+        for (Pair<Date, Date> date : sqlGenerator.lastGeneratedDates) {
+            java.sql.Date x = new java.sql.Date(date.getKey().getTime());
             result.setDate(index++, x);
         }
         return result;
@@ -461,7 +469,7 @@ public class ObjectDaoReflect<T extends BaseEntity> implements ObjectDao<T> {
 
     private class SqlGenerator {
 
-        private List<Date> lastGeneratedDates = new ArrayList<>();
+        private List<Pair<Date, Date>> lastGeneratedDates = new ArrayList<>();
 
         private Map<String, Field> getAnnotationValueFieldMap(Class aClass) {
             Map<String, Field> result = new HashMap<>();
@@ -476,7 +484,8 @@ public class ObjectDaoReflect<T extends BaseEntity> implements ObjectDao<T> {
             return result;
         }
 
-        private List<String> generateUpdateAttributesQueries(BaseEntity object) throws SQLException, IllegalAccessException, NoSuchMethodException, InvocationTargetException, NoSuchObjectException {
+
+        private List<String> generateUpdateAttributesQueries(BaseEntity object, Object oldObject) throws SQLException, IllegalAccessException, NoSuchMethodException, InvocationTargetException, NoSuchObjectException {
             List<String> updateQueries = new ArrayList<>();
             Map<String, Field> fieldMap = getAnnotationValueFieldMap(object.getClass());
             lastGeneratedDates.clear();
@@ -484,30 +493,33 @@ public class ObjectDaoReflect<T extends BaseEntity> implements ObjectDao<T> {
                 Field field = fieldMap.get(attributeCode);
                 if (field != null) {
                     field.setAccessible(true);
-                    Object attributeValue = field.get(object);
-                    if (attributeValue != null) {
-                        long attributeId = jdbcExecutor.execute(QUERY_GET_ATTRIBUTE_ID_BY_CODE, Long.class, attributeCode);
-                        if (BaseEntity.class.isAssignableFrom(field.getType())) {
-                            BaseEntity reffereneObject = (BaseEntity) attributeValue;
-                            if (reffereneObject.isNew()) {
-                                reffereneObject = insert(reffereneObject);
+                    if (checkIfFieldValueChanged(field, object, oldObject)) {
+                        Object attributeValue = field.get(object);
+                        if (attributeValue != null) {
+                            long attributeId = jdbcExecutor.execute(QUERY_GET_ATTRIBUTE_ID_BY_CODE, Long.class, attributeCode);
+                            if (BaseEntity.class.isAssignableFrom(field.getType())) {
+                                BaseEntity reffereneObject = (BaseEntity) attributeValue;
+                                if (reffereneObject.isNew()) {
+                                    reffereneObject = insert(reffereneObject);
+                                }
+                                String oldReference = String.valueOf(((BaseEntity) field.get(oldObject)).getId());
+                                updateQueries.add(buildObjReferenceUpdate(String.valueOf(attributeId), String.valueOf(object.getId()), String.valueOf(reffereneObject.getId()), oldReference));
+                            } else if (List.class.isAssignableFrom(field.getType())) {
+                                updateQueries.addAll(buildUpdateList(String.valueOf(attributeId), object.getId().toString(), getFieldGenericType(field), (List<?>) field.get(object), (List<?>) field.get(oldObject)));
+                            } else if (IdentifiableEnum.class.isAssignableFrom(field.getType())) {
+                                String reference = String.valueOf(((IdentifiableEnum) field.get(object)).getId());
+                                String oldReference = String.valueOf(((IdentifiableEnum) field.get(oldObject)).getId());
+                                updateQueries.add(buildObjReferenceUpdate(String.valueOf(attributeId), String.valueOf(object.getId()), reference, oldReference));
+                            } else if (field.getType().equals(Date.class)) {
+                                Date oldDate = (Date) field.get(oldObject);
+                                updateQueries.add(buildAttributeDateUpdate(String.valueOf(attributeId), object.getId().toString(), (Date) attributeValue, oldDate));
+                            } else if (field.getType().equals(String.class) || Number.class.isAssignableFrom(field.getType())) {
+                                String oldValue = String.valueOf(field.get(oldObject));
+                                updateQueries.add(buildAttributeStringUpdate(String.valueOf(attributeId), object.getId().toString(), attributeValue.toString(), oldValue));
                             }
-                            updateQueries.add(buildObjReferenceUpdate(String.valueOf(attributeId), object.getId().toString(), reffereneObject.getId().toString()));
-                        } else if (List.class.isAssignableFrom(field.getType())) {
-                            updateQueries.addAll(buildUpdateList(String.valueOf(attributeId), object.getId().toString(), getFieldGenericType(field), (List<?>) field.get(object)));
-                        } else if (IdentifiableEnum.class.isAssignableFrom(field.getType())) {
-                            Method method = field.getType().getMethod("getId");
-                            updateQueries.add(buildObjReferenceUpdate(String.valueOf(attributeId), object.getId().toString(), method.invoke(field.get(object)).toString()));
-                        } else if (field.getType().equals(Date.class)) {
-                            updateQueries.add(buildAttributeUpdate(String.valueOf(attributeId), object.getId().toString(), null, (Date) attributeValue));
-                        } else if (field.getType().equals(String.class) || Number.class.isAssignableFrom(field.getType())) {
-                            updateQueries.add(buildAttributeUpdate(String.valueOf(attributeId), object.getId().toString(), attributeValue.toString(), null));
                         }
                     }
                 }
-            }
-            if (updateQueries.size() == 0) {
-                throw new IllegalArgumentException();
             }
             return updateQueries;
         }
@@ -550,11 +562,16 @@ public class ObjectDaoReflect<T extends BaseEntity> implements ObjectDao<T> {
             } else throw new IllegalArgumentException();
         }
 
+
+        private boolean checkIfFieldValueChanged(Field field, Object object, Object oldObject) throws IllegalAccessException {
+            return !Objects.equals(field.get(object), field.get(oldObject));
+        }
+
         private String buildAttributeInsert(String attributeId, String objectId, String value, Date dateValue) {
             String dateMarker = null;
             if (dateValue != null) {
                 dateMarker = "?";
-                lastGeneratedDates.add(dateValue);
+                lastGeneratedDates.add(new Pair<>(dateValue, null));
             }
             return " INTO ATTRIBUTES(ATTR_ID, OBJECT_ID, VALUE, DATE_VALUE) VALUES (" + attributeId +
                     ", " +
@@ -577,10 +594,20 @@ public class ObjectDaoReflect<T extends BaseEntity> implements ObjectDao<T> {
                     ")";
         }
 
-        private String buildObjReferenceUpdate(String attributeId, String objectId, String reference) {
+        private String buildObjReferenceDelete(String attributeId, String objectId, String reference) {
+            return "DELETE OBJREFERENCE " +
+                    "WHERE ATTR_ID = " + attributeId + " AND OBJECT_ID = " + objectId + " AND REFERENCE = " + reference;
+        }
+
+        private String buildObjectDelete(String objectId) {
+            return "DELETE OBJECTS " +
+                    "WHERE OBJECT_ID = " + objectId;
+        }
+
+        private String buildObjReferenceUpdate(String attributeId, String objectId, String reference, String oldReference) {
             return "UPDATE OBJREFERENCE " +
                     "SET REFERENCE = " + reference + " " +
-                    "WHERE ATTR_ID = " + attributeId + " AND OBJECT_ID = " + objectId;
+                    "WHERE ATTR_ID = " + attributeId + " AND OBJECT_ID = " + objectId + " AND REFERENCE = " + oldReference;
         }
 
         private String buildObjectNameUpdate(String objectId, String name) {
@@ -589,16 +616,18 @@ public class ObjectDaoReflect<T extends BaseEntity> implements ObjectDao<T> {
                     "WHERE OBJECT_ID = " + objectId;
         }
 
-        private String buildAttributeUpdate(String attributeId, String objectId, String value, Date dateValue) {
-            String dateMarker = null;
-            if (dateValue != null) {
-                dateMarker = "?";
-                lastGeneratedDates.add(dateValue);
-            }
+        private String buildAttributeDateUpdate(String attributeId, String objectId, Date value, Date oldValue) {
+            lastGeneratedDates.add(new Pair<>(value, oldValue));
             return "UPDATE ATTRIBUTES " +
-                    "SET VALUE = " + "'" + value +  "'" + ", " +
-                    "DATE_VALUE = " + dateMarker + " " +
-                    "WHERE ATTR_ID = " + attributeId + " AND OBJECT_ID = " + objectId;
+                    "DATE_VALUE = ? " +
+                    "WHERE ATTR_ID = " + attributeId + " AND OBJECT_ID = " + objectId + " AND VALUE = ?";
+        }
+
+
+        private String buildAttributeStringUpdate(String attributeId, String objectId, String value, String oldValue) {
+            return "UPDATE ATTRIBUTES " +
+                    "SET VALUE = " + "'" + value + "'" + " " +
+                    "WHERE ATTR_ID = " + attributeId + " AND OBJECT_ID = " + objectId + " AND VALUE = " + "'" + oldValue + "'";
         }
 
 
@@ -618,29 +647,49 @@ public class ObjectDaoReflect<T extends BaseEntity> implements ObjectDao<T> {
             return result.toString();
         }
 
-        private List<String> buildUpdateList(String attributeId, String objectId, Class<?> listGenericType, List<?> list) throws SQLException, NoSuchObjectException {
+        private List<String> buildUpdateList(String attributeId, String objectId, Class<?> listGenericType, List<?> list, List<?> oldList) throws SQLException, NoSuchObjectException {
             List<String> result = new LinkedList<>();
             if (IdentifiableEnum.class.isAssignableFrom(listGenericType)) {
-                for (Object value : list) {
-                    IdentifiableEnum elem = (IdentifiableEnum) value;
-                    result.add(buildObjReferenceUpdate(attributeId, objectId, String.valueOf(elem.getId())));
-                }
+                List<?> toDeleteList = new ArrayList<>(oldList);
+                toDeleteList.removeAll(list);
+                result.addAll(toDeleteList.stream().map(toDelete -> buildObjReferenceDelete(attributeId, objectId, String.valueOf(((IdentifiableEnum) toDelete).getId()))).collect(Collectors.toList()));
+                List<?> toAddList = new ArrayList<>(list);
+                toAddList.removeAll(oldList);
+                result.addAll(toAddList.stream().map(toAdd -> "INSERT" + buildObjReferenceInsert(attributeId, objectId, String.valueOf(((IdentifiableEnum) toAdd).getId()))).collect(Collectors.toList()));
                 return result;
             } else if (listGenericType.equals(NamedEntity.class)) {
-                for (Object value : list) {
-                    NamedEntity elem = (NamedEntity) value;
-                    long listElemId = elem.getId();
-                    result.add(buildObjectNameUpdate(String.valueOf(listElemId), elem.getName()));
-                    result.add(buildAttributeUpdate(String.valueOf(64), String.valueOf(listElemId), elem.getName(), null));
+
+                List<?> toDeleteList = new ArrayList<>(oldList);
+                toDeleteList.removeAll(list);
+                for (Object toDelete : toDeleteList) {
+                    NamedEntity toDeleteEntity = (NamedEntity) toDelete;
+                    result.add(buildObjReferenceDelete(attributeId, objectId, String.valueOf(toDeleteEntity.getId())));
+                    result.add(buildObjectDelete(String.valueOf(toDeleteEntity.getId())));
+                }
+                List<?> toAddList = new ArrayList<>(list);
+                toAddList.removeAll(oldList);
+                String listValueObjectTypeCode = jdbcExecutor.execute(QUERY_GET_LIST_OBJECT_TYPE_CODE_BY_ATTR_ID, String.class, attributeId);
+                for (Object toAdd : toAddList) {
+                    NamedEntity toAddEntity = (NamedEntity) toAdd;
+                    long listElemId = insertObjectAndReturnId(String.valueOf(toAddEntity.getName()), listValueObjectTypeCode);
+                    toAddEntity.setId(listElemId);
+                    result.add("INSERT" + buildAttributeInsert(String.valueOf(64), String.valueOf(listElemId), String.valueOf(toAddEntity.getName()), null));
+                    result.add("INSERT" + buildObjReferenceInsert(String.valueOf(63), String.valueOf(listElemId), String.valueOf(jdbcExecutor.execute(QUERY_GET_LIST_OBJECT_ID_BY_LIST_ITEM_OBJECT_TYPE_CODE, Long.class, listValueObjectTypeCode))));
+                    result.add("INSERT" + buildObjReferenceInsert(attributeId, objectId, String.valueOf(listElemId)));
                 }
                 return result;
             } else if (BaseEntity.class.isAssignableFrom(listGenericType)) {
-                for (Object value : list) {
+                List<?> toDeleteList = new ArrayList<>(oldList);
+                toDeleteList.removeAll(list);
+                result.addAll(toDeleteList.stream().map(toDelete -> buildObjReferenceDelete(attributeId, objectId, String.valueOf(((BaseEntity) toDelete).getId()))).collect(Collectors.toList()));
+                List<?> toAddList = new ArrayList<>(list);
+                toAddList.removeAll(oldList);
+                for (Object value : toAddList) {
                     BaseEntity elem = (BaseEntity) value;
                     if (elem.isNew()) {
                         elem = insert(elem);
                     }
-                    result.add(buildObjReferenceUpdate(attributeId, objectId, elem.getId().toString()));
+                    result.add("INSERT" + buildObjReferenceInsert(attributeId, objectId, elem.getId().toString()));
                 }
                 return result;
             }

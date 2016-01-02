@@ -2,9 +2,12 @@ package com.edu.nc.bytesoft.model;
 
 import com.edu.nc.bytesoft.dao.annotation.AttributeName;
 import com.edu.nc.bytesoft.dao.annotation.ObjTypeName;
+import org.apache.commons.collections.CollectionUtils;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 
 @ObjTypeName("USER")
 public class User extends Contact {
@@ -21,10 +24,10 @@ public class User extends Contact {
     protected String companyName;
 
     @AttributeName("USR_ROLES")
-    protected List<Role> roles;
+    protected List<Role> roles = new ArrayList<>();
 
     @AttributeName("USR_CONTACTS")
-    protected List<Contact> contacts;
+    protected List<Contact> contacts = new ArrayList<>();
 
     public User() {
     }
@@ -87,5 +90,25 @@ public class User extends Contact {
                 ", roles=" + roles +
                 ", contacts=" + contacts +
                 "} ";
+    }
+
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof User)) return false;
+        if (!super.equals(o)) return false;
+        User user = (User) o;
+        return Objects.equals(getLogin(), user.getLogin()) &&
+                Objects.equals(getPassword(), user.getPassword()) &&
+                Objects.equals(getRegistered(), user.getRegistered()) &&
+                Objects.equals(getCompanyName(), user.getCompanyName()) &&
+                CollectionUtils.isEqualCollection(getRoles(), user.getRoles()) &&
+                CollectionUtils.isEqualCollection(getContacts(), user.getContacts());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), getLogin(), getPassword(), getRegistered(), getCompanyName(), getRoles(), getContacts());
     }
 }

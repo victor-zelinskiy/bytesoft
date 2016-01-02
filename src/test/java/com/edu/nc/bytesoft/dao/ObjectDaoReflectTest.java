@@ -2,8 +2,10 @@ package com.edu.nc.bytesoft.dao;
 
 import com.edu.nc.bytesoft.dao.exception.NoSuchObjectException;
 import com.edu.nc.bytesoft.dao.impl.ObjectDaoReflect;
+import com.edu.nc.bytesoft.model.NamedEntity;
 import com.edu.nc.bytesoft.model.Task;
 import com.edu.nc.bytesoft.model.User;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.Test;
 
 import javax.sql.DataSource;
@@ -26,7 +28,7 @@ public class ObjectDaoReflectTest {
         User testUser2 = userDao.getById(userDao.save(testUser1).getId());
         System.out.println(testUser1);
         System.out.println(testUser2);
-        assertThat(testUser1).isEqualToComparingFieldByField(testUser2);
+        assertThat(testUser1.equals(testUser2)).isTrue();
     }
 
     @Test
@@ -39,27 +41,24 @@ public class ObjectDaoReflectTest {
     public void updateTest() throws Exception {
         ObjectDao<User> userDao = new ObjectDaoReflect<>(User.class, dataSource.getConnection());
         User testUser1 = userDao.getById(22);
-        testUser1.setName("Test Name");
+        testUser1.setName(RandomStringUtils.randomAlphabetic(5));
+        testUser1.getPhones().get(0).setName(RandomStringUtils.randomAlphabetic(5));
+        testUser1.getPhones().add(new NamedEntity(RandomStringUtils.randomAlphabetic(5)));
         userDao.save(testUser1);
         User testUser2 = userDao.getById(22);
 
         System.out.println(testUser1);
         System.out.println(testUser2);
-        assertThat(testUser1).isEqualToComparingFieldByField(testUser2);
+        assertThat(testUser1.equals(testUser2)).isTrue();
     }
 
     @Test
     public void getUserTest() throws Exception {
         String user1Name = "Alexander Hunold";
-        String user2Name = "Steven King";
         ObjectDao<User> userDao = new ObjectDaoReflect<>(User.class, dataSource.getConnection());
         User user1 = userDao.getById(24); //Alexander Hunold
         System.out.println(user1);
         assertThat(user1.getName()).isEqualTo(user1Name);
-
-        User user2 = userDao.getById(22); //Steven King
-        System.out.println(user2);
-        assertThat(user2.getName()).isEqualTo(user2Name);
     }
 
     @Test

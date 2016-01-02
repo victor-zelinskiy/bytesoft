@@ -3,6 +3,7 @@ package com.edu.nc.bytesoft.model;
 import com.edu.nc.bytesoft.dao.annotation.AttributeName;
 
 import java.util.Date;
+import java.util.Objects;
 
 public class Comment extends BaseEntity{
     @AttributeName("ICM_AUTHOR")
@@ -72,5 +73,23 @@ public class Comment extends BaseEntity{
                 ", message='" + message + '\'' +
                 ", parent=" + parent +
                 "} ";
+    }
+
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Comment)) return false;
+        if (!super.equals(o)) return false;
+        Comment comment = (Comment) o;
+        return Objects.equals(getAuthor(), comment.getAuthor()) &&
+                Objects.equals(getAddedDate(), comment.getAddedDate()) &&
+                Objects.equals(getMessage(), comment.getMessage()) &&
+                Objects.equals(getParent(), comment.getParent());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), getAuthor(), getAddedDate(), getMessage(), getParent());
     }
 }
