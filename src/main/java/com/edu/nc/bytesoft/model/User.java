@@ -3,16 +3,16 @@ package com.edu.nc.bytesoft.model;
 import com.edu.nc.bytesoft.dao.annotation.AttributeName;
 import com.edu.nc.bytesoft.dao.annotation.ObjTypeName;
 import org.apache.commons.collections.CollectionUtils;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
-@ObjTypeName("USER")
-public class User extends Contact {
+@ObjTypeName(User.TYPE_CODE)
+public class User extends Contact implements UserDetails {
+    public static final String TYPE_CODE = "USER";
     @AttributeName("USR_LOGIN")
-    protected String login;
+    protected String username;
 
     @AttributeName("USR_PASSWORD")
     protected String password;
@@ -32,16 +32,43 @@ public class User extends Contact {
     public User() {
     }
 
-    public String getLogin() {
-        return login;
+
+    public void setUsername(String username) {
+        this.username = username;
     }
 
-    public void setLogin(String login) {
-        this.login = login;
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return roles;
     }
 
     public String getPassword() {
         return password;
+    }
+
+    @Override
+    public String getUsername() {
+        return username;
+    }
+
+    @Override
+    public boolean isAccountNonExpired() {
+        return true;
+    }
+
+    @Override
+    public boolean isAccountNonLocked() {
+        return true;
+    }
+
+    @Override
+    public boolean isCredentialsNonExpired() {
+        return true;
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return true;
     }
 
     public void setPassword(String password) {
@@ -83,7 +110,7 @@ public class User extends Contact {
     @Override
     public String toString() {
         return "User{" + super.toString() +
-                ", login='" + login + '\'' +
+                ", username='" + username + '\'' +
                 ", password='" + password + '\'' +
                 ", registered=" + registered +
                 ", companyName='" + companyName + '\'' +
@@ -99,7 +126,7 @@ public class User extends Contact {
         if (!(o instanceof User)) return false;
         if (!super.equals(o)) return false;
         User user = (User) o;
-        return Objects.equals(getLogin(), user.getLogin()) &&
+        return Objects.equals(getUsername(), user.getUsername()) &&
                 Objects.equals(getPassword(), user.getPassword()) &&
                 Objects.equals(getRegistered(), user.getRegistered()) &&
                 Objects.equals(getCompanyName(), user.getCompanyName()) &&
@@ -109,6 +136,6 @@ public class User extends Contact {
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), getLogin(), getPassword(), getRegistered(), getCompanyName(), getRoles(), getContacts());
+        return Objects.hash(super.hashCode(), getUsername(), getPassword(), getRegistered(), getCompanyName(), getRoles(), getContacts());
     }
 }

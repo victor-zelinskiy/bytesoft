@@ -1,8 +1,11 @@
-package com.edu.nc.bytesoft.dao;
+package com.edu.nc.bytesoft.config;
 
 import com.edu.nc.bytesoft.Log;
 import com.google.common.io.Resources;
 import oracle.jdbc.pool.OracleDataSource;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Scope;
 
 import javax.sql.DataSource;
 import java.io.IOException;
@@ -14,6 +17,7 @@ import java.sql.SQLFeatureNotSupportedException;
 import java.util.Properties;
 import java.util.logging.Logger;
 
+@Configuration
 public class AutoconfiguratedDataSource implements DataSource {
 
     private static Log LOG = Log.get(AutoconfiguratedDataSource.class);
@@ -25,6 +29,8 @@ public class AutoconfiguratedDataSource implements DataSource {
     public AutoconfiguratedDataSource() throws SQLException {
     }
 
+    @Bean
+    @Scope("prototype")
     @Override
     public Connection getConnection() throws SQLException {
         if (!isConfigurated) loadConfiguration();

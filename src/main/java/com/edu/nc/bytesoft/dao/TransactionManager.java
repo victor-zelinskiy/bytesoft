@@ -1,5 +1,7 @@
 package com.edu.nc.bytesoft.dao;
 
+import com.edu.nc.bytesoft.config.AutoconfiguratedDataSource;
+
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.SQLException;

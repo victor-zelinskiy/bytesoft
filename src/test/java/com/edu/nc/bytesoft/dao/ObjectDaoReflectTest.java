@@ -1,5 +1,6 @@
 package com.edu.nc.bytesoft.dao;
 
+import com.edu.nc.bytesoft.config.AutoconfiguratedDataSource;
 import com.edu.nc.bytesoft.dao.exception.NoSuchObjectException;
 import com.edu.nc.bytesoft.dao.impl.ObjectDaoReflect;
 import com.edu.nc.bytesoft.model.NamedEntity;
@@ -21,21 +22,17 @@ public class ObjectDaoReflectTest {
     }
 
     @Test
-    public void inserTest() throws Exception {
+    public void insertTest() throws Exception {
         ObjectDao<User> userDao = new ObjectDaoReflect<>(User.class, dataSource.getConnection());
         User testUser1 = userDao.getById(22);
         testUser1.setId(null);
+        testUser1.setUsername(RandomStringUtils.randomAlphabetic(20));
         User testUser2 = userDao.getById(userDao.save(testUser1).getId());
         System.out.println(testUser1);
         System.out.println(testUser2);
         assertThat(testUser1.equals(testUser2)).isTrue();
     }
 
-    @Test
-    public void test() throws Exception {
-        ObjectDaoReflect<User> userDao = new ObjectDaoReflect<>(User.class, dataSource.getConnection());
-        System.out.println(userDao.checkIfAttributeExist(32, 3, "OBJREFERENCE"));
-    }
 
     @Test
     public void updateTest() throws Exception {
@@ -60,7 +57,7 @@ public class ObjectDaoReflectTest {
         long newId;
         User testUser2 = userDao.getById(userDao.save(testUser1).getId());
         newId = testUser2.getId();
-        boolean isDeleted = userDao.delete(testUser2);
+        boolean isDeleted = userDao.delete(testUser2.getId());
         assertThat(isDeleted).isTrue();
         System.out.println(userDao.getById(newId));
     }
@@ -69,7 +66,7 @@ public class ObjectDaoReflectTest {
     public void getUserTest() throws Exception {
         String user1Name = "Alexander Hunold";
         ObjectDao<User> userDao = new ObjectDaoReflect<>(User.class, dataSource.getConnection());
-        User user1 = userDao.getById(24); //Alexander Hunold
+        User user1 = userDao.getById(22); //Alexander Hunold
         System.out.println(user1);
         assertThat(user1.getName()).isEqualTo(user1Name);
     }

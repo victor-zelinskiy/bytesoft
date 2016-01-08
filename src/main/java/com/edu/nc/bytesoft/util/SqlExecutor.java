@@ -1,22 +1,20 @@
-package com.edu.nc.bytesoft.dao;
-
-import com.edu.nc.bytesoft.dao.exception.NoSuchObjectException;
+package com.edu.nc.bytesoft.util;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-public class JdbcExecutor {
+public class SqlExecutor {
     private Connection connection;
 
     private PreparedStatementHelper preparedStatementHelper = new PreparedStatementHelper();
 
-    public JdbcExecutor(Connection connection) {
+    public SqlExecutor(Connection connection) {
         this.connection = connection;
     }
 
-    public JdbcExecutor() {
+    public SqlExecutor() {
     }
 
     public void setConnection(Connection connection) {
@@ -25,13 +23,13 @@ public class JdbcExecutor {
 
 
     @SuppressWarnings("unchecked")
-    public <R> R execute(String query, Class<R> resultType, Object... parameters) throws SQLException, NoSuchObjectException {
+    public <R> R execute(String query, Class<R> resultType, Object... parameters) throws SQLException {
         try (PreparedStatement statement = prepareSingleGetDataQuery(query, parameters);
              ResultSet resultSet = statement.executeQuery()) {
             if (resultSet.next()) {
                 return (R) preparedStatementHelper.getOperation(resultType).getOutOperation().apply(resultSet);
             }
-            throw new NoSuchObjectException();
+            return null;
         }
     }
 

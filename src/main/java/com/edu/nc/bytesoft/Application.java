@@ -1,13 +1,13 @@
 package com.edu.nc.bytesoft;
 
-import org.springframework.boot.SpringApplication;
+import com.edu.nc.bytesoft.config.RegisterBeanFactoryInitializer;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.builder.SpringApplicationBuilder;
 
 
 @SpringBootApplication(exclude = org.springframework.boot.autoconfigure.security.SecurityAutoConfiguration.class)
 public class Application {
-
     public static void main(String[] args) {
-        SpringApplication.run(Application.class, args);
+        new SpringApplicationBuilder(Application.class).initializers(new RegisterBeanFactoryInitializer()).run(args);
     }
 }

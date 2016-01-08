@@ -1,18 +1,22 @@
 package com.edu.nc.bytesoft.dao.impl;
 
 import com.edu.nc.bytesoft.Log;
-import com.edu.nc.bytesoft.dao.JdbcExecutor;
 import com.edu.nc.bytesoft.dao.ObjectDao;
 import com.edu.nc.bytesoft.dao.TransactionManager;
 import com.edu.nc.bytesoft.dao.annotation.AttributeName;
 import com.edu.nc.bytesoft.dao.annotation.ObjTypeName;
 import com.edu.nc.bytesoft.dao.exception.NoSuchObjectException;
+import com.edu.nc.bytesoft.dao.sql.Queries;
 import com.edu.nc.bytesoft.model.BaseEntity;
 import com.edu.nc.bytesoft.model.IdentifiableEnum;
 import com.edu.nc.bytesoft.model.NamedEntity;
+import com.edu.nc.bytesoft.util.SqlExecutor;
 import javafx.util.Pair;
 import org.apache.commons.beanutils.BeanUtilsBean;
 import org.apache.commons.beanutils.Converter;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Component;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -26,79 +30,11 @@ import java.sql.SQLException;
 import java.util.*;
 import java.util.stream.Collectors;
 
+@Component
+@Scope("prototype")
 public class ObjectDaoReflect<T extends BaseEntity> implements ObjectDao<T> {
 
     private static final Log LOG = Log.get(ObjectDaoReflect.class);
-
-    private static final String QUERY_GET_OBJECT_BY_ID = "SELECT ATYPE.CODE, " +
-            "ATTS.VALUE, ATTS.DATE_VALUE, OBJR.REFERENCE\n" +
-            "FROM ATTRTYPE ATYPE\n" +
-            "LEFT JOIN ATTRIBUTES ATTS ON (ATTS.ATTR_ID = ATYPE.ATTR_ID AND ATTS.OBJECT_ID = ?)\n" +
-            "LEFT JOIN OBJREFERENCE OBJR ON (OBJR.ATTR_ID = ATYPE.ATTR_ID AND OBJR.OBJECT_ID = ?)\n" +
-            "WHERE ATYPE.OBJECT_TYPE_ID IN \n" +
-            "  (\n" +
-            "    SELECT OBT.OBJECT_TYPE_ID\n" +
-            "    FROM OBJTYPE OBT\n" +
-            "    START WITH OBT.OBJECT_TYPE_ID = \n" +
-            "      (\n" +
-            "        SELECT OBJECT_TYPE_ID\n" +
-            "        FROM OBJECTS\n" +
-            "        WHERE OBJECT_ID = ?\n" +
-            "      )\n" +
-            "    CONNECT BY PRIOR OBT.PARENT_ID = OBT.OBJECT_TYPE_ID\n" +
-            "  )\n" +
-            "AND (ATTS.VALUE IS NOT NULL \n" +
-            "OR ATTS.DATE_VALUE IS NOT NULL\n" +
-            "OR OBJR.REFERENCE IS NOT NULL)";
-
-    private static final String QUERY_GET_ATTRIBUTES_BY_TYPE = "SELECT CODE\n" +
-            "FROM ATTRTYPE\n" +
-            "WHERE OBJECT_TYPE_ID IN \n" +
-            "                    (\n" +
-            "                      SELECT OBT.OBJECT_TYPE_ID\n" +
-            "                      FROM OBJTYPE OBT\n" +
-            "                      START WITH OBT.OBJECT_TYPE_ID = \n" +
-            "                      \n" +
-            "                        (\n" +
-            "                          SELECT OBJECT_TYPE_ID\n" +
-            "                          FROM OBJTYPE\n" +
-            "                          WHERE CODE = ?\n" +
-            "                          AND ROWNUM = 1\n" +
-            "                        )\n" +
-            "                      CONNECT BY PRIOR OBT.PARENT_ID = OBT.OBJECT_TYPE_ID\n" +
-            "                    )";
-
-    private static final String QUERY_INSERT_OBJECT = "INSERT INTO OBJECTS (OBJECT_ID, OBJECT_TYPE_ID, NAME) SELECT OBJ_SEQ.NEXTVAL, OBJT.OBJECT_TYPE_ID, ? FROM OBJTYPE OBJT WHERE OBJT.CODE = ? AND ROWNUM = 1";
-
-    private static final String QUERY_GET_OBJ_SEQ_CURRVAL = "SELECT OBJ_SEQ.CURRVAL FROM DUAL";
-
-    private static final String QUERY_GET_SINGLE_ATTRIBUTE = "SELECT * FROM tableName WHERE ATTR_ID = ? AND OBJECT_ID = ?";
-
-
-    private static final String QUERY_GET_LIST_OBJECT_TYPE_CODE_BY_ATTR_ID = "SELECT REF_TYPE.CODE\n" +
-            "FROM ATTRTYPE TYPE JOIN OBJTYPE REF_TYPE ON (REF_TYPE.OBJECT_TYPE_ID = TYPE.OBJECT_TYPE_ID_REF)\n" +
-            "WHERE TYPE.ATTR_ID = ?";
-
-    private static final String QUERY_GET_LIST_OBJECT_ID_BY_LIST_ITEM_OBJECT_TYPE_CODE = "SELECT OBJR.REFERENCE\n" +
-            "FROM OBJREFERENCE OBJR, OBJECTS OBJ, OBJTYPE OBJ_T\n" +
-            "WHERE OBJ.OBJECT_ID = OBJR.OBJECT_ID\n" +
-            "AND OBJ.OBJECT_TYPE_ID = OBJ_T.OBJECT_TYPE_ID\n" +
-            "AND OBJ_T.CODE = ?\n" +
-            "AND ROWNUM = 1";
-
-    private static final String QUERY_GET_ATTRIBUTE_ID_BY_CODE = "SELECT ATTR_ID\n" +
-            " FROM ATTRTYPE\n" +
-            " WHERE CODE = ?\n" +
-            " AND ROWNUM = 1";
-
-    private static final String QUERY_CHECK_IF_OBJECT_EXIST = "SELECT CASE\n" +
-            "       WHEN EXISTS (SELECT 1\n" +
-            "                    FROM OBJECTS\n" +
-            "                    WHERE OBJECT_ID = ?)\n" +
-            "       THEN 'Y'\n" +
-            "       ELSE 'N'\n" +
-            "       END REC_EXISTS\n" +
-            "FROM DUAL";
 
     private Connection connection;
 
@@ -112,11 +48,10 @@ public class ObjectDaoReflect<T extends BaseEntity> implements ObjectDao<T> {
 
     private final BeanUtilsBean utilsBean = new BeanUtilsBean();
 
-    private JdbcExecutor jdbcExecutor = new JdbcExecutor();
+    private final SqlExecutor sqlExecutor = new SqlExecutor();
 
 
-    public void setLazy(boolean lazy) {
-        isLazy = lazy;
+    public ObjectDaoReflect() {
     }
 
     public ObjectDaoReflect(Class<T> objectClass, boolean isLazy) {
@@ -132,7 +67,7 @@ public class ObjectDaoReflect<T extends BaseEntity> implements ObjectDao<T> {
     public ObjectDaoReflect(Class<T> objectClass, Connection connection, boolean isLazy) {
         this(objectClass, isLazy);
         this.connection = connection;
-        jdbcExecutor.setConnection(connection);
+        sqlExecutor.setConnection(connection);
     }
 
     public ObjectDaoReflect(Class<T> objectClass) {
@@ -147,15 +82,24 @@ public class ObjectDaoReflect<T extends BaseEntity> implements ObjectDao<T> {
         this(objectClass, connection, false);
     }
 
+    @Autowired
     public void setConnection(Connection connection) {
         this.connection = connection;
-        jdbcExecutor.setConnection(connection);
+        sqlExecutor.setConnection(connection);
     }
 
+    public void setLazy(boolean lazy) {
+        isLazy = lazy;
+    }
+
+    public void setObjectClass(Class<T> objectClass) {
+        this.objectClass = objectClass;
+    }
 
     @Override
     public T getById(long id) throws SQLException, NoSuchObjectException {
-        if ("N".equals(jdbcExecutor.execute(QUERY_CHECK_IF_OBJECT_EXIST, String.class, id))) throw new NoSuchObjectException();
+        if ("N".equals(sqlExecutor.execute(Queries.QUERY_CHECK_IF_OBJECT_EXIST, String.class, id)))
+            throw new NoSuchObjectException();
         T result = extractObject(id);
         if (result == null) throw new NoSuchObjectException();
         result.setId(id);
@@ -165,21 +109,18 @@ public class ObjectDaoReflect<T extends BaseEntity> implements ObjectDao<T> {
 
 
     @Override
-    public boolean delete(T object) throws NoSuchObjectException, SQLException {
-        if (!object.isNew()) {
-            T oldObject = getById(object.getId());
-            try {
-                for (PreparedStatement preparedUpdateStatement : prepareDeleteStatements(oldObject)) {
-                    try (PreparedStatement statement = preparedUpdateStatement) {
-                        statement.executeUpdate();
-                    }
+    public boolean delete(long id) throws NoSuchObjectException, SQLException {
+        T oldObject = getById(id);
+        try {
+            for (PreparedStatement preparedUpdateStatement : prepareDeleteStatements(oldObject)) {
+                try (PreparedStatement statement = preparedUpdateStatement) {
+                    statement.executeUpdate();
                 }
-                object.setId(null);
-                return true;
-            } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
-                throw new SQLException(e);
             }
-        } else return false;
+            return true;
+        } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+            throw new SQLException(e);
+        }
     }
 
     @Override
@@ -191,6 +132,11 @@ public class ObjectDaoReflect<T extends BaseEntity> implements ObjectDao<T> {
             update(object, oldObject);
         }
         return object;
+    }
+
+    @Override
+    public SqlExecutor getSqlExecutor() {
+        return sqlExecutor;
     }
 
     private <P extends BaseEntity> P update(P object, BaseEntity oldObject) throws SQLException, NoSuchObjectException {
@@ -223,7 +169,7 @@ public class ObjectDaoReflect<T extends BaseEntity> implements ObjectDao<T> {
 
     private String[] getAttributeNamesFromDB(String objTypeName) throws SQLException {
         List<String> resultList = new ArrayList<>();
-        try (PreparedStatement statement = connection.prepareStatement(QUERY_GET_ATTRIBUTES_BY_TYPE)) {
+        try (PreparedStatement statement = connection.prepareStatement(Queries.QUERY_GET_ATTRIBUTES_BY_TYPE)) {
             statement.setString(1, objTypeName);
             try (ResultSet resultSet = statement.executeQuery()) {
                 while (resultSet.next()) {
@@ -257,7 +203,7 @@ public class ObjectDaoReflect<T extends BaseEntity> implements ObjectDao<T> {
     }
 
     private PreparedStatement prepareGetByIdStatement(long id) throws SQLException {
-        PreparedStatement result = connection.prepareStatement(QUERY_GET_OBJECT_BY_ID);
+        PreparedStatement result = connection.prepareStatement(Queries.QUERY_GET_OBJECT_BY_ID);
         for (int i = 1; i <= 3; i++) {
             result.setLong(i, id);
         }
@@ -265,7 +211,7 @@ public class ObjectDaoReflect<T extends BaseEntity> implements ObjectDao<T> {
     }
 
     private PreparedStatement prepareGetAttribute(long attributeId, long objectId, String tableName) throws SQLException {
-        PreparedStatement result = connection.prepareStatement(QUERY_GET_SINGLE_ATTRIBUTE.replace("tableName", tableName));
+        PreparedStatement result = connection.prepareStatement(Queries.QUERY_GET_SINGLE_ATTRIBUTE.replace("tableName", tableName));
         result.setLong(1, attributeId);
         result.setLong(2, objectId);
         return result;
@@ -318,11 +264,11 @@ public class ObjectDaoReflect<T extends BaseEntity> implements ObjectDao<T> {
     }
 
     private long insertObjectAndReturnId(String objName, String objTypeCode) throws SQLException {
-        try (PreparedStatement statement = connection.prepareStatement(QUERY_INSERT_OBJECT)) {
+        try (PreparedStatement statement = connection.prepareStatement(Queries.QUERY_INSERT_OBJECT)) {
             statement.setString(1, objName);
             statement.setString(2, objTypeCode);
             statement.executeUpdate();
-            try (ResultSet resultSet = statement.executeQuery(QUERY_GET_OBJ_SEQ_CURRVAL)) {
+            try (ResultSet resultSet = statement.executeQuery(Queries.QUERY_GET_OBJ_SEQ_CURRVAL)) {
                 if (resultSet.next()) {
                     return resultSet.getLong(1);
                 }
@@ -365,7 +311,7 @@ public class ObjectDaoReflect<T extends BaseEntity> implements ObjectDao<T> {
         }
     }
 
-    public boolean checkIfAttributeExist(long attributeId, long objectId, String tableName) throws SQLException {
+    private boolean checkIfAttributeExist(long attributeId, long objectId, String tableName) throws SQLException {
         try (PreparedStatement statement = prepareGetAttribute(attributeId, objectId, tableName);
              ResultSet resultSet = statement.executeQuery()) {
             return resultSet.next();
@@ -536,7 +482,7 @@ public class ObjectDaoReflect<T extends BaseEntity> implements ObjectDao<T> {
                     if (checkIfFieldValueChanged(field, object, oldObject)) {
                         Object attributeValue = field.get(object);
                         if (attributeValue != null) {
-                            long attributeId = jdbcExecutor.execute(QUERY_GET_ATTRIBUTE_ID_BY_CODE, Long.class, attributeCode);
+                            long attributeId = sqlExecutor.execute(Queries.QUERY_GET_ATTRIBUTE_ID_BY_CODE, Long.class, attributeCode);
                             if (BaseEntity.class.isAssignableFrom(field.getType())) {
                                 BaseEntity reffereneObject = (BaseEntity) attributeValue;
                                 if (reffereneObject.isNew()) {
@@ -575,7 +521,7 @@ public class ObjectDaoReflect<T extends BaseEntity> implements ObjectDao<T> {
                     field.setAccessible(true);
                     Object attributeValue = field.get(oldObject);
                     if (attributeValue != null) {
-                        long attributeId = jdbcExecutor.execute(QUERY_GET_ATTRIBUTE_ID_BY_CODE, Long.class, attributeCode);
+                        long attributeId = sqlExecutor.execute(Queries.QUERY_GET_ATTRIBUTE_ID_BY_CODE, Long.class, attributeCode);
                         if (BaseEntity.class.isAssignableFrom(field.getType())) {
                             BaseEntity reffereneObject = (BaseEntity) attributeValue;
                             deleteQueries.add(buildObjReferenceDelete(String.valueOf(attributeId), String.valueOf(oldObject.getId()), String.valueOf(reffereneObject.getId())));
@@ -774,13 +720,13 @@ public class ObjectDaoReflect<T extends BaseEntity> implements ObjectDao<T> {
                 }
                 List<?> toAddList = new ArrayList<>(list);
                 toAddList.removeAll(oldList);
-                String listValueObjectTypeCode = jdbcExecutor.execute(QUERY_GET_LIST_OBJECT_TYPE_CODE_BY_ATTR_ID, String.class, attributeId);
+                String listValueObjectTypeCode = sqlExecutor.execute(Queries.QUERY_GET_LIST_OBJECT_TYPE_CODE_BY_ATTR_ID, String.class, attributeId);
                 for (Object toAdd : toAddList) {
                     NamedEntity toAddEntity = (NamedEntity) toAdd;
                     long listElemId = insertObjectAndReturnId(String.valueOf(toAddEntity.getName()), listValueObjectTypeCode);
                     toAddEntity.setId(listElemId);
                     result.add("INSERT" + buildAttributeInsert(String.valueOf(64), String.valueOf(listElemId), String.valueOf(toAddEntity.getName()), null));
-                    result.add("INSERT" + buildObjReferenceInsert(String.valueOf(63), String.valueOf(listElemId), String.valueOf(jdbcExecutor.execute(QUERY_GET_LIST_OBJECT_ID_BY_LIST_ITEM_OBJECT_TYPE_CODE, Long.class, listValueObjectTypeCode))));
+                    result.add("INSERT" + buildObjReferenceInsert(String.valueOf(63), String.valueOf(listElemId), String.valueOf(sqlExecutor.execute(Queries.QUERY_GET_LIST_OBJECT_ID_BY_LIST_ITEM_OBJECT_TYPE_CODE, Long.class, listValueObjectTypeCode))));
                     result.add("INSERT" + buildObjReferenceInsert(attributeId, objectId, String.valueOf(listElemId)));
                 }
                 return result;
@@ -813,12 +759,12 @@ public class ObjectDaoReflect<T extends BaseEntity> implements ObjectDao<T> {
             } else if (listGenericType.equals(NamedEntity.class)) {
                 for (Object value : list) {
                     NamedEntity elem = (NamedEntity) value;
-                    long attributeId = jdbcExecutor.execute(QUERY_GET_ATTRIBUTE_ID_BY_CODE, Long.class, attributeCode);
-                    String listValueObjectTypeCode = jdbcExecutor.execute(QUERY_GET_LIST_OBJECT_TYPE_CODE_BY_ATTR_ID, String.class, attributeId);
+                    long attributeId = sqlExecutor.execute(Queries.QUERY_GET_ATTRIBUTE_ID_BY_CODE, Long.class, attributeCode);
+                    String listValueObjectTypeCode = sqlExecutor.execute(Queries.QUERY_GET_LIST_OBJECT_TYPE_CODE_BY_ATTR_ID, String.class, attributeId);
                     long listElemId = insertObjectAndReturnId(String.valueOf(elem.getName()), listValueObjectTypeCode);
                     elem.setId(listElemId);
                     result.append(buildAttributeInsert(String.valueOf(64), String.valueOf(listElemId), String.valueOf(elem.getName()), null));
-                    result.append(buildObjReferenceInsert(String.valueOf(63), String.valueOf(listElemId), String.valueOf(jdbcExecutor.execute(QUERY_GET_LIST_OBJECT_ID_BY_LIST_ITEM_OBJECT_TYPE_CODE, Long.class, listValueObjectTypeCode))));
+                    result.append(buildObjReferenceInsert(String.valueOf(63), String.valueOf(listElemId), String.valueOf(sqlExecutor.execute(Queries.QUERY_GET_LIST_OBJECT_ID_BY_LIST_ITEM_OBJECT_TYPE_CODE, Long.class, listValueObjectTypeCode))));
                     result.append(buildObjReferenceInsert(attributeCode, objectId, String.valueOf(listElemId)));
                 }
                 return result.toString();

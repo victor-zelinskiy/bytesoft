@@ -9,8 +9,9 @@ import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 
-@ObjTypeName("TASK")
+@ObjTypeName(Task.TYPE_CODE)
 public class Task extends AbstractItem {
+    public static final String TYPE_CODE = "TASK";
     @AttributeName("TSK_ASSIGN_USER")
     protected List<User> assignUser;
 

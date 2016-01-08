@@ -1,6 +1,7 @@
 package com.edu.nc.bytesoft.model;
 
 import com.edu.nc.bytesoft.dao.annotation.AttributeName;
+import com.edu.nc.bytesoft.dao.annotation.ObjTypeName;
 import org.apache.commons.collections.CollectionUtils;
 
 import java.io.File;
@@ -8,7 +9,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+
+@ObjTypeName(Contact.TYPE_CODE)
 public class Contact extends NamedEntity {
+    public static final String TYPE_CODE = "CONTACT";
     @AttributeName("USR_EMAIL")
     protected String email;
     protected File photo;
