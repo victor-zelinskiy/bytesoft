@@ -8,7 +8,7 @@ import com.vaadin.annotations.Title;
 import com.vaadin.server.VaadinRequest;
 import com.vaadin.spring.annotation.SpringUI;
 import com.vaadin.spring.navigator.SpringViewProvider;
-import com.vaadin.ui.*;
+import com.vaadin.ui.UI;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.vaadin.spring.events.EventBus;
@@ -25,7 +25,6 @@ public class MainUI extends UI {
 
     @Autowired
     private SpringViewProvider viewProvider;
-
 
     @Autowired
     private VaadinSecurity vaadinSecurity;
@@ -60,7 +59,6 @@ public class MainUI extends UI {
     @EventBusListenerMethod
     void onLogin(SuccessfulLoginEvent loginEvent) {
         if (loginEvent.getSource().equals(this)) {
-            LOG.debug("  !  " + loginEvent.getAuthentication().getAuthorities().toString());
             access(this::showMainForm);
         } else {
             getPage().reload();

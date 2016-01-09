@@ -2,6 +2,7 @@ package com.edu.nc.bytesoft.ui.component;
 
 import com.edu.nc.bytesoft.Log;
 import com.edu.nc.bytesoft.ui.MainUI;
+import com.edu.nc.bytesoft.ui.events.SuccessUserCreatedEvent;
 import com.vaadin.event.ShortcutAction;
 import com.vaadin.server.FontAwesome;
 import com.vaadin.server.Page;
@@ -10,13 +11,13 @@ import com.vaadin.shared.Position;
 import com.vaadin.spring.annotation.SpringComponent;
 import com.vaadin.ui.*;
 import com.vaadin.ui.themes.ValoTheme;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationContext;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.vaadin.spring.annotation.PrototypeScope;
 import org.vaadin.spring.events.EventBus;
+import org.vaadin.spring.events.EventBusListener;
+import org.vaadin.spring.events.annotation.EventBusListenerMethod;
 import org.vaadin.spring.security.VaadinSecurity;
 import org.vaadin.spring.security.util.SuccessfulLoginEvent;
 
@@ -26,15 +27,20 @@ public class LoginForm extends VerticalLayout {
     private final VaadinSecurity vaadinSecurity;
     private final EventBus.SessionEventBus eventBus;
     private static final Log LOG = Log.get(LoginForm.class);
+    private final SignUpForm signUpForm;
+    private final Notification notification = new Notification("");
 
     @Autowired
-    ApplicationContext applicationContext;
+    private ModuleForm moduleForm;
+    @Autowired
+    private TaskForm taskForm;
 
 
     @Autowired
-    public LoginForm(VaadinSecurity vaadinSecurity, EventBus.SessionEventBus eventBus) {
+    public LoginForm(VaadinSecurity vaadinSecurity, EventBus.SessionEventBus eventBus, SignUpForm signUpForm) {
         this.vaadinSecurity = vaadinSecurity;
         this.eventBus = eventBus;
+        this.signUpForm = signUpForm;
         initLayout();
     }
 
@@ -43,6 +49,9 @@ public class LoginForm extends VerticalLayout {
         Component loginForm = buildLoginForm();
         addComponent(loginForm);
         setComponentAlignment(loginForm, Alignment.MIDDLE_CENTER);
+        notification.setStyleName(ValoTheme.NOTIFICATION_SUCCESS);
+        notification.setPosition(Position.TOP_CENTER);
+        notification.setDelayMsec(2500);
     }
 
     private Component buildLoginForm() {
@@ -115,12 +124,28 @@ public class LoginForm extends VerticalLayout {
                 .getValue(), password.getValue()));
 
         signup.addClickListener((Button.ClickListener) event -> setSignUpWindow());
-        createModule.addClickListener((Button.ClickListener) moduleEvent -> MainUI.getCurrent().setContent(
-                new ModuleForm(vaadinSecurity, eventBus)));
-        createTask.addClickListener((Button.ClickListener) moduleEvent -> MainUI.getCurrent().setContent(
-                new TaskForm(vaadinSecurity, eventBus)));
+        createModule.addClickListener((Button.ClickListener) moduleEvent -> MainUI.getCurrent().setContent(moduleForm));
+        createTask.addClickListener((Button.ClickListener) moduleEvent -> MainUI.getCurrent().setContent(taskForm));
         return fields;
 
+    }
+
+    @Override
+    public void attach() {
+        super.attach();
+        eventBus.subscribe(this);
+    }
+
+    @Override
+    public void detach() {
+        eventBus.unsubscribe(this);
+        super.detach();
+    }
+
+    @EventBusListenerMethod
+    void onUserCreate(SuccessUserCreatedEvent userCreatedEvent) {
+        notification.setCaption("User with login: " + userCreatedEvent.getUser().getUsername() + " created, now you can login into system");
+        notification.show(Page.getCurrent());
     }
 
     private void login(String login, String password) {
@@ -128,22 +153,21 @@ public class LoginForm extends VerticalLayout {
             final Authentication authentication = vaadinSecurity.login(login, password);
             eventBus.publish(this, new SuccessfulLoginEvent(getUI(), authentication));
         } catch (AuthenticationException ex) {
-            Notification notification = new Notification(
+            Notification errorNotification = new Notification(
                     "Wrong password or username");
-            notification.setStyleName(ValoTheme.NOTIFICATION_ERROR);
-            notification.setPosition(Position.MIDDLE_CENTER);
-            notification.setDelayMsec(1500);
-            notification.show(Page.getCurrent());
+            errorNotification.setStyleName(ValoTheme.NOTIFICATION_ERROR);
+            errorNotification.setPosition(Position.MIDDLE_CENTER);
+            errorNotification.setDelayMsec(1500);
+            errorNotification.show(Page.getCurrent());
         } catch (Exception ex) {
             Notification.show("An unexpected error occurred", ex.getMessage(), Notification.Type.ERROR_MESSAGE);
-            LoggerFactory.getLogger(getClass()).error("Unexpected error while logging in", ex);
+            LOG.error("Unexpected error while logging in", ex);
         }
     }
 
     public void setSignUpWindow(){
-        SignUpForm sub = new SignUpForm();
-        sub.setWidth("95%");
-        sub.setHeight("95%");
-        MainUI.getCurrent().addWindow(sub);
+        signUpForm.setWidth("95%");
+        signUpForm.setHeight("95%");
+        MainUI.getCurrent().addWindow(signUpForm);
     }
 }

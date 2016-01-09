@@ -1,11 +1,14 @@
 package com.edu.nc.bytesoft.model;
 
 import com.edu.nc.bytesoft.dao.annotation.AttributeName;
+import com.edu.nc.bytesoft.dao.annotation.ObjTypeName;
 
 import java.util.Date;
 import java.util.Objects;
 
-public class Comment extends BaseEntity{
+@ObjTypeName(Comment.TYPE_CODE)
+public class Comment extends BaseEntity {
+    public static final String TYPE_CODE = "COMMENT_ITEM";
     @AttributeName("ICM_AUTHOR")
     protected User author;
     @AttributeName("ICM_ADD_DATE")
