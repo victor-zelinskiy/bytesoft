@@ -16,7 +16,7 @@ public class Task extends AbstractItem {
     protected List<User> assignUser;
 
     @AttributeName("TSK_PRIORITY")
-    protected Integer priority;
+    protected Priority priority;
 
     @AttributeName("TSK_WATCHERS")
     protected List<User> watchers = new ArrayList<>();
@@ -30,7 +30,7 @@ public class Task extends AbstractItem {
     public Task() {
     }
 
-    public Task(String name, User author, Date createdDate, Status status, List<User> assignUser, Integer priority, List<User> watchers, List<Comment> comments, Task parentTask) {
+    public Task(String name, User author, Date createdDate, Status status, List<User> assignUser, Priority priority, List<User> watchers, List<Comment> comments, Task parentTask) {
         super(name, author, createdDate, status);
         this.assignUser = assignUser;
         this.priority = priority;
@@ -46,11 +46,11 @@ public class Task extends AbstractItem {
         this.assignUser = assignUser;
     }
 
-    public Integer getPriority() {
+    public Priority getPriority() {
         return priority;
     }
 
-    public void setPriority(Integer priority) {
+    public void setPriority(Priority priority) {
         this.priority = priority;
     }
 

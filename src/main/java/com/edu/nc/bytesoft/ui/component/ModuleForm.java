@@ -30,7 +30,7 @@ import static com.vaadin.server.FontAwesome.*;
 @SpringComponent
 public class ModuleForm extends HorizontalLayout{
     @Autowired
-    ApplicationContext applicationContext;
+    MainUI mainUI;
 
     private final VaadinSecurity vaadinSecurity;
     private final EventBus.SessionEventBus eventBus;
@@ -86,11 +86,7 @@ public class ModuleForm extends HorizontalLayout{
 
         ListSelect priority = new ListSelect("Priority");
         priority.setWidth(180, Sizeable.UNITS_PIXELS);
-        priority.addItems("1");
-        priority.addItems("2");
-        priority.addItems("3");
-        priority.addItems("4");
-        priority.addItems("5");
+        priority.addItems("1", "2", "3", "4", "5");
         priority.setMultiSelect(false);
         priority.setNullSelectionAllowed(false);
         priority.setRows(1);
@@ -100,7 +96,7 @@ public class ModuleForm extends HorizontalLayout{
         buttonCreate.setStyleName(ValoTheme.BUTTON_PRIMARY);
         buttonCreate.setWidth(180, Sizeable.UNITS_PIXELS);
         fields.addComponent(buttonCreate);
-        buttonCreate.addListener((Listener) event -> MainUI.getCurrent().setContent(applicationContext.getBean(MainUI.class)));
+        buttonCreate.addListener((Listener) event -> MainUI.getCurrent().setContent(mainUI));
 
         return fields;
     }

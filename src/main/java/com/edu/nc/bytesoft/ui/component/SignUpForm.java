@@ -1,41 +1,61 @@
 package com.edu.nc.bytesoft.ui.component;
 
+import com.edu.nc.bytesoft.Log;
+import com.edu.nc.bytesoft.dao.exception.NoSuchObjectException;
+import com.edu.nc.bytesoft.model.Role;
+import com.edu.nc.bytesoft.model.User;
+import com.edu.nc.bytesoft.service.UserService;
+import com.edu.nc.bytesoft.service.exception.NotUniqueEmailException;
+import com.edu.nc.bytesoft.service.exception.NotUniqueLoginException;
+import com.edu.nc.bytesoft.ui.events.SuccessUserCreatedEvent;
 import com.vaadin.data.Property;
+import com.vaadin.data.Validator;
+import com.vaadin.data.validator.EmailValidator;
+import com.vaadin.data.validator.StringLengthValidator;
 import com.vaadin.event.ShortcutAction;
 import com.vaadin.server.Sizeable;
 import com.vaadin.spring.annotation.SpringComponent;
 import com.vaadin.ui.*;
 import com.vaadin.ui.themes.ValoTheme;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationContext;
 import org.vaadin.spring.annotation.PrototypeScope;
+import org.vaadin.spring.events.EventBus;
+
+import java.sql.SQLException;
+import java.util.Date;
 
 @PrototypeScope
 @SpringComponent
 public class SignUpForm extends Window {
 
-    Button cancel = new Button("Cancel", this::cancel);
-    Button createContactButton = new Button("Create Contact", this::createContact);
-
-    TextField login = new TextField("Login: ");
-    PasswordField password = new PasswordField("Password:");
-    TextField name = new TextField("Name:");
-    TextField companyName = new TextField("Company name:");
-    TextField email = new TextField("Email:");
-    TextField phone = new TextField("Phone:");
-
-    TextField contactName = new TextField("Contact name:");
-    TextField contactEmail = new TextField("Contact email:");
-    TextField contactPhone = new TextField("Contact phone:");
-
-    Grid grid = new Grid();
-
-    FormLayout contactForm = new FormLayout();
-    FormLayout signUpPanel = new FormLayout();
-
+    private static final Log LOG = Log.get(SignUpForm.class);
 
     @Autowired
-    ApplicationContext applicationContext;
+    private UserService userService;
+
+    @Autowired
+    private EventBus.SessionEventBus eventBus;
+
+
+    private Button cancel = new Button("Cancel", this::cancel);
+    private Button createContactButton = new Button("Create Contact", this::createContact);
+
+    private TextField login = new TextField("Login: ");
+    private PasswordField password = new PasswordField("Password:");
+    private TextField name = new TextField("Name:");
+    private TextField companyName = new TextField("Company name:");
+    private TextField email = new TextField("Email:");
+    private TextField phone = new TextField("Phone:");
+
+    private TextField contactName = new TextField("Contact name:");
+    private TextField contactEmail = new TextField("Contact email:");
+    private TextField contactPhone = new TextField("Contact phone:");
+
+    private Grid grid = new Grid();
+
+    private FormLayout contactForm = new FormLayout();
+    private FormLayout signUpPanel = new FormLayout();
+
 
     public SignUpForm() {
         center();
@@ -84,39 +104,95 @@ public class SignUpForm extends Window {
     }
 
     private void createSignUpForm() {
-//        fields.addComponent(new Label("Hello!"));
         signUpPanel.addComponent(new Label("Personal Info"));
 
         OptionGroup optionGroup = new OptionGroup("Who are you?");
         optionGroup.addItems("Customer", "Developer");
-
-        Button createUser = new Button("Create user");
+        Button createUser = new Button("Create user", event -> {
+            User newUser = new User();
+            newUser.setUsername(login.getValue());
+            newUser.setPassword(password.getValue());
+            newUser.setEmail(email.getValue());
+            newUser.setRegistered(new Date());
+            newUser.setName("".equals(name.getValue()) ? null : name.getValue());
+            Role userRole = null;
+            switch (String.valueOf(optionGroup.getValue())) {
+                case "Customer" :
+                    userRole = Role.ROLE_CUSTOMER;
+                    newUser.setCompanyName("".equals(companyName.getValue()) ? null : companyName.getValue());
+                    break;
+                case "Developer" : userRole = Role.ROLE_DEVELOPER;
+                    break;
+            }
+            newUser.getRoles().add(userRole);
+            try {
+                userService.save(newUser);
+                eventBus.publish(SignUpForm.this, new SuccessUserCreatedEvent(getUI(), newUser));
+                cancel(event);
+            } catch (NoSuchObjectException | SQLException | NotUniqueLoginException | NotUniqueEmailException e) {
+                Notification.show("Error during creation user", e.getMessage(), Notification.Type.ERROR_MESSAGE);
+            }
+        });
+        createUser.setEnabled(false);
         createUser.setStyleName(ValoTheme.BUTTON_PRIMARY);
         createUser.setWidth(185, Sizeable.UNITS_PIXELS);
+        password.addValidator(new StringLengthValidator("Password must be at least 6 characters", 6, 30, false));
+        password.setRequired(true);
+        password.setRequiredError("Password must be filled in");
+        password.addValueChangeListener(event -> createUser.setEnabled(checkValidFields()));
+
+        login.addValidator(new StringLengthValidator("Login must be at least 5 characters", 5, 30, false));
+        login.addValidator((Validator) value -> {
+            try {
+                if(!userService.isUsernameUnique((String) value)) {
+                    throw new Validator.InvalidValueException("Login already exists");
+                }
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
+        });
+        login.setRequired(true);
+        login.setRequiredError("Login must be filled in");
+        login.addValueChangeListener(event -> createUser.setEnabled(checkValidFields()));
+
+        email.addValidator(new EmailValidator("Invalid email address"));
+        email.addValidator((Validator) value -> {
+            try {
+                if(!userService.isEmailUnique((String) value)) {
+                    throw new Validator.InvalidValueException("Email already in use");
+                }
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
+        });
+        email.setRequired(true);
+        email.setRequiredError("Email must be filled in");
+        email.addValueChangeListener(event -> createUser.setEnabled(checkValidFields()));
 
         optionGroup.setImmediate(true);
-        optionGroup.addListener(new Property.ValueChangeListener() {
-            @Override
-            public void valueChange(Property.ValueChangeEvent event) {
-                if (optionGroup.getValue().equals("Developer")) {
-                    signUpPanel.addComponents(login, password, name, email, phone, createUser);
-                    signUpPanel.removeComponent(companyName);
-                    grid.setVisible(false);
-                    contactForm.setVisible(false);
-                } else {
-                    signUpPanel.removeComponent(login);
-                    signUpPanel.removeComponent(password);
-                    signUpPanel.removeComponent(name);
-                    signUpPanel.removeComponent(email);
-                    signUpPanel.removeComponent(phone);
-                    signUpPanel.removeComponent(createUser);
-                    signUpPanel.addComponents(login, password, name, email, companyName, phone, createUser);
-                    grid.setVisible(true);
-                    contactForm.setVisible(true);
-                }
+        optionGroup.addListener((Property.ValueChangeListener) event -> {
+            if (optionGroup.getValue().equals("Developer")) {
+                signUpPanel.addComponents(login, password, name, email, phone, createUser);
+                signUpPanel.removeComponent(companyName);
+                grid.setVisible(false);
+                contactForm.setVisible(false);
+            } else {
+                signUpPanel.removeComponent(login);
+                signUpPanel.removeComponent(password);
+                signUpPanel.removeComponent(name);
+                signUpPanel.removeComponent(email);
+                signUpPanel.removeComponent(phone);
+                signUpPanel.removeComponent(createUser);
+                signUpPanel.addComponents(login, password, name, email, companyName, phone, createUser);
+                grid.setVisible(true);
+                contactForm.setVisible(true);
             }
         });
         signUpPanel.addComponent(optionGroup);
+    }
+
+    private boolean checkValidFields() {
+        return password.isValid() && login.isValid() && email.isValid();
     }
 
     public void cancel(Button.ClickEvent event) {

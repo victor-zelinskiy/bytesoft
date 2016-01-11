@@ -12,9 +12,10 @@ import java.util.Objects;
 
 @ObjTypeName(Contact.TYPE_CODE)
 public class Contact extends NamedEntity {
-    public static final String TYPE_CODE = "CONTACT";
+    public static final String TYPE_CODE = "CONTACT_ITEM";
     @AttributeName("USR_EMAIL")
     protected String email;
+    @AttributeName("USR_PHOTO")
     protected File photo;
     @AttributeName("USR_PHONE")
     protected List<NamedEntity> phones = new ArrayList<>();
