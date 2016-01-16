@@ -21,7 +21,7 @@ public class Project extends AbstractItem {
     protected List<Module> modules = new ArrayList<>();
 
     @AttributeName("PRJ_ASSIGN_PMS")
-    protected List<User> assignProjectManagers = new ArrayList<>();
+    protected User assignProjectManagers = new User();
 
     public Long getPrice() {
         return price;
@@ -47,14 +47,13 @@ public class Project extends AbstractItem {
         this.modules = modules;
     }
 
-    public List<User> getAssignProjectManagers() {
+    public User getAssignProjectManagers() {
         return assignProjectManagers;
     }
 
-    public void setAssignProjectManagers(List<User> assignProjectManagers) {
+    public void setAssignProjectManagers(User assignProjectManagers) {
         this.assignProjectManagers = assignProjectManagers;
     }
-
     @Override
     public String toString() {
         return "Project{" + super.toString() +
@@ -74,7 +73,7 @@ public class Project extends AbstractItem {
         return Objects.equals(getPrice(), project.getPrice()) &&
                 CollectionUtils.isEqualCollection(getDocuments(), project.getDocuments()) &&
                 CollectionUtils.isEqualCollection(getModules(), project.getModules()) &&
-                CollectionUtils.isEqualCollection(getAssignProjectManagers(), project.getAssignProjectManagers());
+                Objects.equals(getAssignProjectManagers(), project.getAssignProjectManagers());
     }
 
     @Override

@@ -2,6 +2,7 @@ package com.edu.nc.bytesoft.ui.component;
 
 import com.edu.nc.bytesoft.Log;
 import com.edu.nc.bytesoft.dao.exception.NoSuchObjectException;
+import com.edu.nc.bytesoft.model.Contact;
 import com.edu.nc.bytesoft.model.Role;
 import com.edu.nc.bytesoft.model.User;
 import com.edu.nc.bytesoft.service.UserService;
@@ -201,6 +202,28 @@ public class SignUpForm extends Window {
 
     public void createContact(Button.ClickEvent event) {
         grid.addRow(contactName.getValue(), contactEmail.getValue(), contactPhone.getValue());
+        Contact contact = new Contact();
+        contactName.addValidator(new StringLengthValidator("Contact name must be at least 6 characters", 6, 30, false));
+        contactName.setRequired(true);
+        contactName.setRequiredError("Contact must be filled in");
+        contactName.addValueChangeListener(event1 -> createContactButton.setEnabled(checkValidFields()));
+char c = 55;
+        contactEmail.addValidator(new EmailValidator("Invalid email address"));
+        contactEmail.addValidator((Validator) value -> {
+            try {
+                if(!userService.isEmailUnique((String) value)) {
+                    throw new Validator.InvalidValueException("Email already in use");
+                }
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
+        });
+        contactEmail.setRequired(true);
+        contactEmail.setRequiredError("Email must be filled in");
+        contactEmail.addValueChangeListener(event1 -> createContactButton.setEnabled(checkValidFields()));
+
+     //   contactPhone.addValidator(new );
+
         contactName.setValue("");
         contactEmail.setValue("");
         contactPhone.setValue("");
