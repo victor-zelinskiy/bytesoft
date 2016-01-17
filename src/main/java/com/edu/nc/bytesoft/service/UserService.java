@@ -115,7 +115,7 @@ public class UserService implements UserDetailsService {
     }
 
     public String getEmailById(long id) throws SQLException {
-        return userDao.getSqlExecutor().execute(QUERY_GET_USERNAME_BY_USER_ID, String.class, id);
+        return userDao.getSqlExecutor().execute(QUERY_GET_EMAIL_BY_USER_ID, String.class, id);
     }
 
     public User getUserByUsername(String username) throws SQLException, NoSuchObjectException {
