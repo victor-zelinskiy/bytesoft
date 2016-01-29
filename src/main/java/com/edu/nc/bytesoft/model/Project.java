@@ -15,10 +15,10 @@ public class Project extends AbstractItem {
     protected Long price;
 
     @AttributeName("PRJ_DOCUMENTS")
-    protected List<Document> documents;
+    protected List<Document> documents = new ArrayList<>();
 
     @AttributeName("PRJ_MODULES")
-    protected List<Module> modules;
+    protected List<Module> modules = new ArrayList<>();
 
     @AttributeName("PRJ_ASSIGN_PMS")
     protected User assignProjectManagers;
