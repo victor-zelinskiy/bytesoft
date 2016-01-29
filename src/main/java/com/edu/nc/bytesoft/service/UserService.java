@@ -50,7 +50,6 @@ public class UserService implements UserDetailsService {
             "WHERE OBJECT_ID = ?\n" +
             "AND ATTR_ID = 66";
 
-
     public User save(User user) throws NoSuchObjectException, SQLException, NotUniqueLoginException, NotUniqueEmailException {
         if (!isUserValidUsername(user)) {
             throw new NotUniqueLoginException();
@@ -71,8 +70,6 @@ public class UserService implements UserDetailsService {
         Long userId = getUserIdByEmail(email);
         return userId == null;
     }
-
-
     public boolean isUserValidUsername(User user) throws SQLException {
         if (!isUsernameUnique(user.getUsername())) {
             if (user.isNew()) {
@@ -134,12 +131,12 @@ public class UserService implements UserDetailsService {
         return userDao.getSqlExecutor().execute(Queries.QUERY_GET_OBJECT_IDS_BY_TYPE_CODE, long[].class, User.TYPE_CODE);
     }
 
+
     public void deleteAllUsers() throws NoSuchObjectException, SQLException {
         for (long id : getAllUsersIds()) {
             userDao.delete(id);
         }
     }
-
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {

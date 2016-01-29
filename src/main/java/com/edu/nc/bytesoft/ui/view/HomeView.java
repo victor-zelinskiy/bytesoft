@@ -1,6 +1,9 @@
 package com.edu.nc.bytesoft.ui.view;
 
+import com.edu.nc.bytesoft.model.Contact;
+import com.edu.nc.bytesoft.model.Role;
 import com.edu.nc.bytesoft.model.User;
+import com.edu.nc.bytesoft.service.UserService;
 import com.edu.nc.bytesoft.ui.component.SideBar;
 import com.vaadin.navigator.View;
 import com.vaadin.navigator.ViewChangeListener;
@@ -8,13 +11,18 @@ import com.vaadin.server.FontAwesome;
 import com.vaadin.spring.annotation.SpringView;
 import com.vaadin.ui.*;
 import com.vaadin.ui.themes.ValoTheme;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.vaadin.spring.sidebar.annotation.FontAwesomeIcon;
 import org.vaadin.spring.sidebar.annotation.SideBarItem;
 
 import javax.annotation.PostConstruct;
+import java.sql.SQLException;
+import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
+import java.util.Locale;
 
 @SpringView(name = HomeView.NAME)
 @SideBarItem(sectionId = SideBar.MENU, caption = "Home page", order = 0)
@@ -26,6 +34,7 @@ public class HomeView extends AbsoluteLayout implements View {
     User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
     Grid contacts = new Grid();
 
+
     @PostConstruct
     void init() {
 
@@ -33,7 +42,7 @@ public class HomeView extends AbsoluteLayout implements View {
         header.addStyleName(ValoTheme.LABEL_H2);
         addComponent(header,"left: 20px;");
 
-        if(currentUser.getRoles().get(0).toString().equals("ROLE_CUSTOMER"))
+        if(currentUser.getRoles().contains(Role.ROLE_CUSTOMER))
             createCustomerView();
     }
 
@@ -56,11 +65,12 @@ public class HomeView extends AbsoluteLayout implements View {
         dateOfReg.addStyleName(ValoTheme.LABEL_H2);
         addComponent(dateOfReg,"left: 425px; top: 70px;");
 
-        Date date = new Date();
-        date = currentUser.getRegistered();
-        Label dateOfRegValue = new Label("");
+        Date date = currentUser.getRegistered();
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("dd.MM.yy hh:mm:ss", Locale.ENGLISH);
+        String strDate = simpleDateFormat.format(date);
+        Label dateOfRegValue = new Label(String.valueOf(strDate));
         dateOfRegValue.addStyleName(ValoTheme.LABEL_H2);
-        addComponent(dateOfRegValue,"left: 600px; top: 70px;");
+        addComponent(dateOfRegValue,"left: 700px; top: 70px;");
 
         Label user = new Label("User : ");
         Label email = new Label("Email : ");
@@ -76,11 +86,7 @@ public class HomeView extends AbsoluteLayout implements View {
         addComponent(email,"left: 20px; top: 200px;");
         addComponent(phone,"left: 20px; top: 250px;");
         addComponent(contactslabel,"left: 20px; top: 300px;");
-/*
-        Label userValue = new Label(currentUser.getUsername());
-        Label emailValue = new Label(currentUser.getEmail());
-        Label phoneValue = new Label(currentUser.getPhones().toString());
-*/
+
         TextField userValue = new TextField();
         TextField emailValue = new TextField();
         TextField phoneValue = new TextField();
@@ -93,7 +99,7 @@ public class HomeView extends AbsoluteLayout implements View {
         }
         else
         {
-            phoneValue.setValue(currentUser.getPhones().get(0).toString());
+            phoneValue.setValue(currentUser.getPhones().get(0).getName());
         }
 
         userValue.setReadOnly(true);
@@ -109,13 +115,19 @@ public class HomeView extends AbsoluteLayout implements View {
 
         createContactGrid();
         addComponent(contacts,"left: 20px; top: 390px;");
+        int size = currentUser.getContacts().size();
+        for(int i=0; i<size; i++)
+        {
+            contacts.addRow(currentUser.getContacts().get(i).getName(),currentUser.getContacts().get(i).getEmail());
+        }
     }
     private void createContactGrid() {
         contacts.setWidth("390px");
         contacts.setHeight("210px");
         contacts.addColumn("Name");
-        contacts.addColumn("Phone");
+        contacts.addColumn("Email");
         contacts.setVisible(true);
         contacts.setSelectionMode(Grid.SelectionMode.SINGLE);
     }
+
 }

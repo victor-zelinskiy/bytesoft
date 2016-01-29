@@ -3,6 +3,7 @@ package com.edu.nc.bytesoft.ui.component;
 import com.edu.nc.bytesoft.Log;
 import com.edu.nc.bytesoft.dao.exception.NoSuchObjectException;
 import com.edu.nc.bytesoft.model.Contact;
+import com.edu.nc.bytesoft.model.NamedEntity;
 import com.edu.nc.bytesoft.model.Role;
 import com.edu.nc.bytesoft.model.User;
 import com.edu.nc.bytesoft.service.UserService;
@@ -23,7 +24,9 @@ import org.vaadin.spring.annotation.PrototypeScope;
 import org.vaadin.spring.events.EventBus;
 
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 @PrototypeScope
 @SpringComponent
@@ -57,6 +60,9 @@ public class SignUpForm extends Window {
     private FormLayout contactForm = new FormLayout();
     private FormLayout signUpPanel = new FormLayout();
 
+    private User newUser = new User();
+    private List contactList = new ArrayList<>();
+    private List phoneList = new ArrayList<>();
 
     public SignUpForm() {
         center();
@@ -110,12 +116,17 @@ public class SignUpForm extends Window {
         OptionGroup optionGroup = new OptionGroup("Who are you?");
         optionGroup.addItems("Customer", "Developer");
         Button createUser = new Button("Create user", event -> {
-            User newUser = new User();
             newUser.setUsername(login.getValue());
             newUser.setPassword(password.getValue());
             newUser.setEmail(email.getValue());
             newUser.setRegistered(new Date());
+            newUser.setCompanyName(companyName.getValue());
             newUser.setName("".equals(name.getValue()) ? null : name.getValue());
+            newUser.setContacts(contactList);
+            if(!(phone.getValue().isEmpty())) {
+                phoneList.add(new NamedEntity(phone.getValue()));
+                newUser.setPhones(phoneList);
+            }
             Role userRole = null;
             switch (String.valueOf(optionGroup.getValue())) {
                 case "Customer" :
@@ -128,6 +139,7 @@ public class SignUpForm extends Window {
             newUser.getRoles().add(userRole);
             try {
                 userService.save(newUser);
+             //   LOG.error("after save " + userService.getUserById(test.getId()));
                 eventBus.publish(SignUpForm.this, new SuccessUserCreatedEvent(getUI(), newUser));
                 cancel(event);
             } catch (NoSuchObjectException | SQLException | NotUniqueLoginException | NotUniqueEmailException e) {
@@ -169,7 +181,7 @@ public class SignUpForm extends Window {
         email.setRequired(true);
         email.setRequiredError("Email must be filled in");
         email.addValueChangeListener(event -> createUser.setEnabled(checkValidFields()));
-
+        companyName.setRequired(true);
         optionGroup.setImmediate(true);
         optionGroup.addListener((Property.ValueChangeListener) event -> {
             if (optionGroup.getValue().equals("Developer")) {
@@ -195,19 +207,18 @@ public class SignUpForm extends Window {
     private boolean checkValidFields() {
         return password.isValid() && login.isValid() && email.isValid();
     }
-
+    private boolean checkValidFieldsContact() {
+        return contactName.isValid() && contactEmail.isValid() && contactPhone.isValid();
+    }
     public void cancel(Button.ClickEvent event) {
         close();
     }
 
     public void createContact(Button.ClickEvent event) {
-        grid.addRow(contactName.getValue(), contactEmail.getValue(), contactPhone.getValue());
-        Contact contact = new Contact();
         contactName.addValidator(new StringLengthValidator("Contact name must be at least 6 characters", 6, 30, false));
         contactName.setRequired(true);
         contactName.setRequiredError("Contact must be filled in");
-        contactName.addValueChangeListener(event1 -> createContactButton.setEnabled(checkValidFields()));
-char c = 55;
+        contactName.addValueChangeListener(event1 -> createContactButton.setEnabled(checkValidFieldsContact()));
         contactEmail.addValidator(new EmailValidator("Invalid email address"));
         contactEmail.addValidator((Validator) value -> {
             try {
@@ -220,13 +231,21 @@ char c = 55;
         });
         contactEmail.setRequired(true);
         contactEmail.setRequiredError("Email must be filled in");
-        contactEmail.addValueChangeListener(event1 -> createContactButton.setEnabled(checkValidFields()));
-
-     //   contactPhone.addValidator(new );
-
+        contactEmail.addValueChangeListener(event1 -> createContactButton.setEnabled(checkValidFieldsContact()));
+        grid.addRow(contactName.getValue(), contactEmail.getValue(), contactPhone.getValue());
+        saveContact(contactName.getValue(), contactEmail.getValue(), contactPhone.getValue());
         contactName.setValue("");
         contactEmail.setValue("");
         contactPhone.setValue("");
+    }
+
+    public void saveContact(String contactName,String contactEmail,String contactPhone)
+    {
+        Contact newContact = new Contact();
+        newContact.setName(contactName);
+        newContact.setEmail(contactEmail);
+        newContact.getPhones().add(new NamedEntity(contactPhone));
+        contactList.add(newContact);
     }
 
 }

@@ -34,9 +34,7 @@ public abstract class AbstractItem extends NamedEntity {
         return author;
     }
 
-    public void setAuthor(User author) {
-        this.author = author;
-    }
+    public void setAuthor(User author) {this.author = author;}
 
     public Date getCreatedDate() {
         return createdDate;

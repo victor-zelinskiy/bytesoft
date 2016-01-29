@@ -21,17 +21,17 @@ public class PreparedStatementHelper {
 
         operations.put(long[].class, new OperationHolder<>(resultSet -> {
             List<Long> list = new ArrayList<>();
-            while (resultSet.next()) {
+            do {
                 list.add(resultSet.getLong(1));
-            }
+            } while (resultSet.next());
             return ArrayUtils.toPrimitive(list.toArray(new Long[list.size()]));
         }));
 
         operations.put(String[].class, new OperationHolder<>(resultSet -> {
             List<String> list = new ArrayList<>();
-            while (resultSet.next()) {
+            do {
                 list.add(resultSet.getString(1));
-            }
+            } while (resultSet.next());
             return list.toArray(new String[list.size()]);
         }));
     }

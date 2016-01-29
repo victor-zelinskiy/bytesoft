@@ -29,6 +29,7 @@ public class User extends Contact implements UserDetails {
     @AttributeName("USR_CONTACTS")
     protected List<Contact> contacts = new ArrayList<>();
 
+
     public User() {
     }
 

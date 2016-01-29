@@ -31,26 +31,24 @@ public class ProjectService {
             "AND VALUE = ? \n" +
             "AND ROWNUM = 1";
 */
-    private static final String QUERY_GET_NAMES_PROJECT_BY_USERID = "SELECT A.VALUE\n" +
-            "FROM ATTRIBUTES A\n" +
-            "WHERE A.ATTR_ID = 7 AND A.OBJECT_ID IN(\n"+
-            "SELECT OBJECTS.OBJECT_ID\n"+
-            "FROM OBJECTS JOIN ATTRIBUTES ON OBJECTS.OBJECT_ID = ATTRIBUTES.OBJECT_ID\n"+
-            "WHERE OBJECTS.OBJECT_TYPE_ID = 3 AND ATTRIBUTES.ATTR_ID = 8\n"+
-            "AND ATTRIBUTES.VALUE = ?)";
+    private static final String QUERY_GET_NAMES_PROJECT_BY_USERID = "SELECT A.VALUE\n"+
+            "FROM ATTRIBUTES A  WHERE A.ATTR_ID = 7 AND A.OBJECT_ID IN\n"+
+            "(SELECT OBJECT_ID FROM OBJREFERENCE OBJ WHERE OBJ.REFERENCE = ?)";
 
-    private static final String QUERY_GET_IDS_PROJECT_BY_USERID = "SELECT A.OBJECT_ID\n" +
-            "FROM ATTRIBUTES A\n" +
-            "WHERE A.ATTR_ID = 7 AND A.OBJECT_ID IN(\n"+
-            "SELECT OBJECTS.OBJECT_ID\n"+
-            "FROM OBJECTS JOIN ATTRIBUTES ON OBJECTS.OBJECT_ID = ATTRIBUTES.OBJECT_ID\n"+
-            "WHERE OBJECTS.OBJECT_TYPE_ID = 3 AND ATTRIBUTES.ATTR_ID = 8\n"+
-            "AND ATTRIBUTES.VALUE = ?)";
+    private static final String QUERY_GET_IDS_PROJECT_BY_USERID = "SELECT OBJECT_ID\n"+
+           "FROM OBJREFERENCE OBJ WHERE OBJ.REFERENCE = ?";
 
     private static final String QUERY_GET_PROJECT_STATUS_BY_PRJID = "SELECT ST.NAME\n"+
             "FROM OBJECTS ST\n"+
             "WHERE ST.OBJECT_ID =\n" +
             "(SELECT REFERENCE FROM OBJREFERENCE WHERE ATTR_ID = 11 AND OBJECT_ID = ?)";
+
+    private static final String QUERY_GET_PROJECT_NAME_BY_PRJID ="SELECT A.VALUE\n"+
+             "FROM ATTRIBUTES A WHERE A.ATTR_ID = 7 AND A.OBJECT_ID =?";
+
+    private static final String QUERY_GET_PROJECT_ID_BY_PRJNAME ="SELECT A.OBJECT_ID\n"+
+            "FROM ATTRIBUTES A WHERE A.ATTR_ID = 7 AND A.VALUE = ?";
+
 
     public Project save(Project project) throws NoSuchObjectException, SQLException, NotUniqueLoginException {
         if (!isProjectnameUnique(project.getName()))
@@ -78,5 +76,11 @@ public class ProjectService {
     }
     public String getProjectStatusById(long id) throws SQLException {
         return projectDao.getSqlExecutor().execute(QUERY_GET_PROJECT_STATUS_BY_PRJID, String.class, id);
+    }
+    public String getProjectNameById(long id) throws SQLException {
+        return projectDao.getSqlExecutor().execute(QUERY_GET_PROJECT_NAME_BY_PRJID, String.class, id);
+    }
+    public Long getProjectIdByName(String name) throws SQLException {
+        return projectDao.getSqlExecutor().execute(QUERY_GET_PROJECT_ID_BY_PRJNAME, Long.class, name);
     }
 }

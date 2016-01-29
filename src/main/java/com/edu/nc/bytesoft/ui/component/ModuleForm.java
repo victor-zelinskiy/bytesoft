@@ -35,6 +35,12 @@ public class ModuleForm extends HorizontalLayout{
     private final VaadinSecurity vaadinSecurity;
     private final EventBus.SessionEventBus eventBus;
 
+    TextField name =new TextField("Name:");
+    DateField creationDate = new DateField("Creation date:");
+    DateField deadlineDate = new DateField("Deadline date:");
+    DateField complDate = new DateField("Completion date:");
+    TextArea description = new TextArea("Description:");
+
     @Autowired
     public ModuleForm(VaadinSecurity vaadinSecurity, EventBus.SessionEventBus eventBus) {
         this.vaadinSecurity = vaadinSecurity;
@@ -46,7 +52,7 @@ public class ModuleForm extends HorizontalLayout{
         setSizeFull();
         Component moduleForm = moduleForm();
         addComponent(moduleForm);
-       setComponentAlignment(moduleForm, Alignment.TOP_LEFT);
+        setComponentAlignment(moduleForm, Alignment.TOP_LEFT);
 
     }
     private Component moduleForm() {
@@ -61,11 +67,11 @@ public class ModuleForm extends HorizontalLayout{
 
         FormLayout fields = new FormLayout();
 
-        fields.addComponent(new TextField("Name:"));
-        fields.addComponent(new DateField("Creation date:"));
-        fields.addComponent(new DateField("Deadline date:"));
-        fields.addComponent(new DateField("Completion date:"));
-        fields.addComponent(new TextArea("Description:"));
+        fields.addComponent(name);
+        fields.addComponent(creationDate);
+        fields.addComponent(deadlineDate);
+        fields.addComponent(complDate);
+        fields.addComponent(description);
 /*
         ListSelect status = new ListSelect("Status");
         status.setWidth(180, Sizeable.UNITS_PIXELS);
