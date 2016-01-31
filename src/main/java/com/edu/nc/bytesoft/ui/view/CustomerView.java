@@ -9,6 +9,7 @@ import com.edu.nc.bytesoft.service.exception.NotUniqueEmailException;
 import com.edu.nc.bytesoft.service.exception.NotUniqueLoginException;
 import com.edu.nc.bytesoft.ui.component.SideBar;
 import com.vaadin.data.Item;
+import com.vaadin.data.util.BeanContainer;
 import com.vaadin.event.ItemClickEvent;
 import com.vaadin.event.ShortcutAction;
 import com.vaadin.navigator.View;
@@ -51,7 +52,7 @@ public class CustomerView extends AbsoluteLayout implements View,Upload.Receiver
 
     Button createOrder = new Button("Create order",event -> saveOrder());
     Button addOrder = new Button("+Add order", this::addOrder);
-    private TreeTable prjtable = new TreeTable();
+    private Grid prjtable = new Grid();
     private Grid grid = new Grid();
 
     File file;
@@ -128,29 +129,25 @@ public class CustomerView extends AbsoluteLayout implements View,Upload.Receiver
     }
     public void tableOfProjects()  {
 
-        getIdsProjects();
-        prjtable.addContainerProperty("Order name",String.class,null);
-        prjtable.addContainerProperty("Status",String.class,null);
-        Object[]item1;
-        if(projectIds!=null) {
 
-            String[] status = new String[projectIds.length];
-            String[] projectsName = new String[projectIds.length];
+            BeanContainer<String, Project> projectContainer =
+                    new BeanContainer<>(Project.class);
+            projectContainer.setBeanIdProperty("id");
 
-            for (int i = 0; i < projectIds.length; i++) {
-                try {
-                    status[i] = projectService.getProjectStatusById(projectIds[i]);
-                    projectsName[i] = projectService.getProjectNameById(projectIds[i]);
-                } catch (SQLException e) {
-                    Notification.show("Project not found", e.getMessage(), Notification.Type.ERROR_MESSAGE);
-                }
-                item1 = new Object[]{(i+1)+". "+String.valueOf(projectsName[i]), status[i]};
-                prjtable.addItem(item1, i);
-                prjtable.setChildrenAllowed(i, false);
+            try {
+                projectContainer.addAll(projectService.getAllProjectsByUser(currentUser.getId()));
+                prjtable.setContainerDataSource(projectContainer);
+                prjtable.removeAllColumns();
+                prjtable.addColumn("name");
+                prjtable.addColumn("status");
+                prjtable.getColumn("name").setHeaderCaption("Project name");
+            } catch (SQLException e) {
+                Notification.show("Some error occurred while getting projects", e.getMessage(), Notification.Type.ERROR_MESSAGE);
             }
-        }
+
         prjtable.setWidth("400px");
-    }
+        }
+
     private void createContactGrid() {
         grid.setWidth("400px");
         grid.setHeight("210px");
