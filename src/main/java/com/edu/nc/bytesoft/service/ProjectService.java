@@ -14,6 +14,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+
 @Service
 public class ProjectService {
 
@@ -36,7 +39,10 @@ public class ProjectService {
             "(SELECT OBJECT_ID FROM OBJREFERENCE OBJ WHERE OBJ.REFERENCE = ?)";
 
     private static final String QUERY_GET_IDS_PROJECT_BY_USERID = "SELECT OBJECT_ID\n"+
-           "FROM OBJREFERENCE OBJ WHERE OBJ.REFERENCE = ?";
+           "FROM OBJREFERENCE OBJ WHERE OBJ.ATTR_ID = 8 AND OBJ.REFERENCE = ?";
+
+    private static final String QUERY_GET_IDS_PROJECT_BY_PMID = "SELECT OBJECT_ID\n"+
+            "FROM OBJREFERENCE OBJ WHERE OBJ.ATTR_ID = 17 AND OBJ.REFERENCE = ?";
 
     private static final String QUERY_GET_PROJECT_STATUS_BY_PRJID = "SELECT ST.NAME\n"+
             "FROM OBJECTS ST\n"+
@@ -68,9 +74,7 @@ public class ProjectService {
    //     return projectDao.getSqlExecutor().execute(QUERY_GET_USER_ID_BY_USERNAME, Long.class, username);
         return null;
     }
-    public String[] getAllProjectsName(long id) throws SQLException {
-        return projectDao.getSqlExecutor().execute(QUERY_GET_NAMES_PROJECT_BY_USERID, String[].class, id);
-    }
+
     public long[] getAllProjectsIds(long id) throws SQLException {
         return projectDao.getSqlExecutor().execute(QUERY_GET_IDS_PROJECT_BY_USERID, long[].class, id);
     }
@@ -82,5 +86,20 @@ public class ProjectService {
     }
     public Long getProjectIdByName(String name) throws SQLException {
         return projectDao.getSqlExecutor().execute(QUERY_GET_PROJECT_ID_BY_PRJNAME, Long.class, name);
+    }
+
+    public Long getProjectNameByPM(String name) throws SQLException {
+        return projectDao.getSqlExecutor().execute(QUERY_GET_IDS_PROJECT_BY_PMID, Long.class, name);
+    }
+    public List<Project> getAllProjectsByUser(long userId) throws SQLException {
+        List<Project> result = new ArrayList<>();
+        for (long id : getAllProjectsIds(userId)) {
+            try {
+                result.add(projectDao.getById(id));
+            } catch (NoSuchObjectException e) {
+                throw new SQLException( e );
+            }
+        }
+        return result;
     }
 }
