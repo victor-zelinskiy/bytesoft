@@ -9,6 +9,9 @@ import com.edu.nc.bytesoft.model.User;
 import com.edu.nc.bytesoft.service.UserService;
 import com.edu.nc.bytesoft.service.exception.NotUniqueEmailException;
 import com.edu.nc.bytesoft.service.exception.NotUniqueLoginException;
+import com.edu.nc.bytesoft.ui.component.validators.LoginValidator;
+import com.edu.nc.bytesoft.ui.component.validators.PasswordValidator;
+import com.edu.nc.bytesoft.ui.component.validators.PhoneValidator;
 import com.edu.nc.bytesoft.ui.events.SuccessUserCreatedEvent;
 import com.vaadin.data.Property;
 import com.vaadin.data.Validator;
@@ -149,7 +152,7 @@ public class SignUpForm extends Window {
         createUser.setEnabled(false);
         createUser.setStyleName(ValoTheme.BUTTON_PRIMARY);
         createUser.setWidth(185, Sizeable.UNITS_PIXELS);
-        password.addValidator(new StringLengthValidator("Password must be at least 6 characters", 6, 30, false));
+        password.addValidator(new PasswordValidator("Wrong password"));
         password.setRequired(true);
         password.setRequiredError("Password must be filled in");
         password.addValueChangeListener(event -> createUser.setEnabled(checkValidFields()));
@@ -165,6 +168,7 @@ public class SignUpForm extends Window {
             }
         });
         login.setRequired(true);
+        login.addValidator(new LoginValidator("Wrong login"));
         login.setRequiredError("Login must be filled in");
         login.addValueChangeListener(event -> createUser.setEnabled(checkValidFields()));
 
@@ -182,6 +186,7 @@ public class SignUpForm extends Window {
         email.setRequiredError("Email must be filled in");
         email.addValueChangeListener(event -> createUser.setEnabled(checkValidFields()));
         companyName.setRequired(true);
+        phone.addValidator(new PhoneValidator("Wrong number"));
         optionGroup.setImmediate(true);
         optionGroup.addListener((Property.ValueChangeListener) event -> {
             if (optionGroup.getValue().equals("Developer")) {
@@ -229,6 +234,7 @@ public class SignUpForm extends Window {
                 throw new RuntimeException(e);
             }
         });
+        contactPhone.addValidator(new PhoneValidator("Wrong number"));
         contactEmail.setRequired(true);
         contactEmail.setRequiredError("Email must be filled in");
         contactEmail.addValueChangeListener(event1 -> createContactButton.setEnabled(checkValidFieldsContact()));
