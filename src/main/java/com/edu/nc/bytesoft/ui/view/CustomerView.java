@@ -8,8 +8,10 @@ import com.edu.nc.bytesoft.service.UserService;
 import com.edu.nc.bytesoft.service.exception.NotUniqueEmailException;
 import com.edu.nc.bytesoft.service.exception.NotUniqueLoginException;
 import com.edu.nc.bytesoft.ui.component.SideBar;
+import com.edu.nc.bytesoft.ui.component.UserAdditionalInfoForm;
 import com.vaadin.data.Item;
 import com.vaadin.data.util.BeanContainer;
+import com.vaadin.data.util.BeanItem;
 import com.vaadin.event.ItemClickEvent;
 import com.vaadin.event.ShortcutAction;
 import com.vaadin.navigator.View;
@@ -18,6 +20,8 @@ import com.vaadin.server.FontAwesome;
 import com.vaadin.server.Sizeable;
 import com.vaadin.spring.annotation.SpringView;
 import com.vaadin.ui.*;
+import com.vaadin.ui.declarative.converters.DesignObjectConverter;
+import com.vaadin.ui.renderers.ButtonRenderer;
 import com.vaadin.ui.themes.ValoTheme;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.annotation.Secured;
@@ -129,7 +133,6 @@ public class CustomerView extends AbsoluteLayout implements View,Upload.Receiver
     }
     public void tableOfProjects()  {
 
-
             BeanContainer<String, Project> projectContainer =
                     new BeanContainer<>(Project.class);
             projectContainer.setBeanIdProperty("id");
@@ -140,12 +143,38 @@ public class CustomerView extends AbsoluteLayout implements View,Upload.Receiver
                 prjtable.removeAllColumns();
                 prjtable.addColumn("name");
                 prjtable.addColumn("status");
+                prjtable.addColumn("assignProjectManagers");
                 prjtable.getColumn("name").setHeaderCaption("Project name");
+                prjtable.getColumn("assignProjectManagers").setHeaderCaption("PM");
             } catch (SQLException e) {
                 Notification.show("Some error occurred while getting projects", e.getMessage(), Notification.Type.ERROR_MESSAGE);
             }
 
         prjtable.setWidth("400px");
+
+        prjtable.getColumn("assignProjectManagers").setRenderer(new ButtonRenderer(e -> {
+                    Window userWindow = new Window("Project manager info");
+                    userWindow.setWidth(300.0f, Unit.PIXELS);
+                 //   userWindow.setContent(new UserAdditionalInfoForm(((Project)((BeanItem)prjtable.getContainerDataSource().getItem(e.getItemId())).getBean()).getAuthor()));
+                   // userWindow.setContent(new UserAdditionalInfoForm(project.getAssignProjectManagers()));
+                    BeanItem item = (BeanItem) prjtable.getContainerDataSource().getItem(e.getItemId());
+                    Project project = (Project) item.getBean();
+                    userWindow.setContent(new UserAdditionalInfoForm(project.getAssignProjectManagers()));
+                    userWindow.setModal(true);
+                    userWindow.setResizable(false);
+                    userWindow.setClosable(true);
+                    userWindow.center();
+                    UI.getCurrent().addWindow(userWindow);
+                }),
+                new DesignObjectConverter() {
+                    @Override
+                    public String convertToPresentation(Object value, Class<? extends String> targetType, Locale locale) throws ConversionException {
+                        if (value == null) {
+                            return null;
+                        }
+                        return /*((User)value).getUsername()*/ "";
+                    }
+                });
         }
 
     private void createContactGrid() {

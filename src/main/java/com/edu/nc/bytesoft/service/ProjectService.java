@@ -55,7 +55,6 @@ public class ProjectService {
     private static final String QUERY_GET_PROJECT_ID_BY_PRJNAME ="SELECT A.OBJECT_ID\n"+
             "FROM ATTRIBUTES A WHERE A.ATTR_ID = 7 AND A.VALUE = ?";
 
-
     public Project save(Project project) throws NoSuchObjectException, SQLException, NotUniqueLoginException {
         if (!isProjectnameUnique(project.getName()))
         throw new NotUniqueLoginException();
@@ -67,14 +66,9 @@ public class ProjectService {
     }
 
     public boolean isProjectnameUnique(String prjname) throws SQLException {
-        Long proId = getPrjIdByProjectname(prjname);
+        Long proId = getProjectIdByName(prjname);
         return proId == null;
     }
-    public Long getPrjIdByProjectname(String prjname) throws SQLException {
-   //     return projectDao.getSqlExecutor().execute(QUERY_GET_USER_ID_BY_USERNAME, Long.class, username);
-        return null;
-    }
-
     public long[] getAllProjectsIds(long id) throws SQLException {
         return projectDao.getSqlExecutor().execute(QUERY_GET_IDS_PROJECT_BY_USERID, long[].class, id);
     }
@@ -102,4 +96,9 @@ public class ProjectService {
         }
         return result;
     }
+    public boolean delete(long id) throws NoSuchObjectException, SQLException
+    {
+        return projectDao.delete(id);
+    }
+
 }
